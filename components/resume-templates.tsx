@@ -31,7 +31,11 @@ const templates = [
   },
 ]
 
-export function ResumeTemplates() {
+interface ResumeTemplatesProps {
+  onComplete?: (template: { id: string; data: any }) => void
+}
+
+export function ResumeTemplates({ onComplete }: ResumeTemplatesProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
 
   return (
@@ -93,7 +97,21 @@ export function ResumeTemplates() {
             ></textarea>
           </div>
 
-          <Button>Continue with Template</Button>
+          <Button
+            onClick={() => {
+              if (selectedTemplate) {
+                const templateData = {
+                  id: selectedTemplate,
+                  data: {
+                    // This would contain the form data in a real implementation
+                  },
+                }
+                onComplete && onComplete(templateData)
+              }
+            }}
+          >
+            Continue with Template
+          </Button>
         </div>
       )}
     </div>

@@ -6,7 +6,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, File, X, CheckCircle } from "lucide-react"
 
-export function ResumeUpload() {
+interface ResumeUploadProps {
+  onComplete?: (file: File) => void
+}
+
+export function ResumeUpload({ onComplete }: ResumeUploadProps) {
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -149,7 +153,7 @@ export function ResumeUpload() {
           <p className="text-sm text-gray-500 mb-4">
             Your resume has been uploaded successfully. You can proceed to the next step.
           </p>
-          <Button>Continue</Button>
+          <Button onClick={() => onComplete && onComplete(file)}>Continue</Button>
         </div>
       )}
     </div>

@@ -24,16 +24,48 @@ export default function DashboardPage() {
                 <TabsTrigger value="template">Use Template</TabsTrigger>
               </TabsList>
               <TabsContent value="upload" className="mt-0">
-                <ResumeUpload />
+                <ResumeUpload
+                  onComplete={(file) => {
+                    // Here you would typically process the uploaded file
+                    // For now, we'll just update the UI to show completion
+                    const progressElement = document.querySelector('[data-step="resume"]')
+                    if (progressElement) {
+                      progressElement.classList.remove("bg-gray-200", "text-gray-500")
+                      progressElement.classList.add("bg-primary", "text-white")
+                    }
+
+                    // Enable the generate button
+                    const generateButton = document.querySelector("[data-generate-button]")
+                    if (generateButton) {
+                      generateButton.removeAttribute("disabled")
+                    }
+                  }}
+                />
               </TabsContent>
               <TabsContent value="template" className="mt-0">
-                <ResumeTemplates />
+                <ResumeTemplates
+                  onComplete={(template) => {
+                    // Here you would typically save the selected template
+                    // For now, we'll just update the UI to show completion
+                    const progressElement = document.querySelector('[data-step="resume"]')
+                    if (progressElement) {
+                      progressElement.classList.remove("bg-gray-200", "text-gray-500")
+                      progressElement.classList.add("bg-primary", "text-white")
+                    }
+
+                    // Enable the generate button
+                    const generateButton = document.querySelector("[data-generate-button]")
+                    if (generateButton) {
+                      generateButton.removeAttribute("disabled")
+                    }
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </div>
 
           <div className="flex justify-center mt-8">
-            <GenerateButton />
+            <GenerateButton data-generate-button disabled={true} />
           </div>
         </div>
 
@@ -51,7 +83,10 @@ export default function DashboardPage() {
             </div>
             <div className="w-0.5 h-6 bg-gray-200 ml-4"></div>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-medium">
+              <div
+                data-step="resume"
+                className="h-8 w-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-medium"
+              >
                 2
               </div>
               <div>
