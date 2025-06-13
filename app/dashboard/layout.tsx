@@ -13,7 +13,9 @@ export default function DashboardLayout({
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl">
             <FileText className="h-6 w-6" />
-            <span>Job2Resume4">
+            <span>Job2Resume</span>
+          </Link>
+          <nav className="flex items-center gap-4">
             <Link href="/dashboard/settings" className="text-sm font-medium hover:underline underline-offset-4">
               Settings
             </Link>
