@@ -243,8 +243,8 @@ export async function enhanceResumeSection(
 ): Promise<string> {
   try {
     const prompt = `
-      Improve this ${sectionType} section to better match the job requirements.
-      Keep it professional and realistic.
+      Enhance the following ${sectionType} section of a resume to better match this job description.
+      Keep it professional, ATS-friendly, and realistic.
 
       Job Description:
       ${jobDescription}
@@ -252,7 +252,13 @@ export async function enhanceResumeSection(
       Current ${sectionType}:
       ${currentContent}
 
-      Return only the improved content, no explanations or formatting.
+      Provide an improved version that:
+      - Uses relevant keywords from the job description
+      - Includes quantifiable achievements where appropriate
+      - Maintains professional tone
+      - Is optimized for ATS systems
+
+      Return only the enhanced content, no explanations.
     `
 
     const { text } = await generateText({
