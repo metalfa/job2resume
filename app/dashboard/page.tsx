@@ -8,7 +8,8 @@ import { ResumeTemplates } from "@/components/resume-templates"
 import { GenerateButton } from "@/components/generate-button"
 import { Button } from "@/components/ui/button"
 import { Download, AlertCircle } from "lucide-react"
-import { generateTailoredResume, extractResumeContent, type JobAnalysis, type ResumeData } from "@/lib/resume-ai"
+import { extractResumeContent, type JobAnalysis, type ResumeData } from "@/lib/resume-ai"
+import { generateResumeAction } from "@/app/actions/resume-generation"
 import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
 
 export default function DashboardPage() {
@@ -36,9 +37,14 @@ export default function DashboardPage() {
         resumeData.content = extractedContent
       }
 
-      // Generate tailored resume using AI (or mock data if no API key)
-      const tailoredResume = await generateTailoredResume(jobAnalysis, resumeData)
-      setGeneratedResume(tailoredResume)
+      // Generate tailored resume using server action
+      const result = await generateResumeAction(jobAnalysis, resumeData)
+
+      if (result.success) {
+        setGeneratedResume(result.data)
+      } else {
+        setError(result.error || "Failed to generate tailored resume")
+      }
     } catch (error) {
       console.error("Error generating resume:", error)
       setError("Failed to generate tailored resume. Please try again.")

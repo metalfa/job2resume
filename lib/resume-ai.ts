@@ -87,11 +87,13 @@ export async function generateTailoredResume(jobAnalysis: JobAnalysis, resumeDat
     `
 
     const { text } = await generateText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o", {
+        apiKey: process.env.OPENAI_API_KEY,
+      }),
       prompt: prompt,
     })
 
-    // Clean and parse the JSON response using the same method as job description analysis
+    // Clean and parse the JSON response
     const cleanedResponse = text.replace(/```json\s*|```\s*/g, "").trim()
 
     try {
