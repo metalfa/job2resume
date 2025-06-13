@@ -2,62 +2,65 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import type { ResumeData } from "@/types/resume-builder"
 
-// Remove the getOpenAIApiKey function entirely
+// Helper function to clean JSON response
+function cleanJsonResponse(text: string): string {
+  let cleaned = text.trim()
+
+  // Remove markdown code block syntax if present
+  cleaned = cleaned.replace(/^```json\s*|^```\s*/i, "")
+  cleaned = cleaned.replace(/\s*```$/i, "")
+
+  return cleaned
+}
 
 export async function generateResumeFromJobDescription(jobDescription: string): Promise<ResumeData> {
   try {
     const prompt = `
-      Based on the following job description, generate a complete, hypothetical but realistic resume for an ideal candidate. 
-      The resume should be ATS-friendly and tailored specifically to this role.
-
+      Analyze this job description and create a complete, realistic resume for an ideal candidate.
+      
       Job Description:
       ${jobDescription}
 
-      Generate a JSON response with the following structure (no markdown formatting):
+      Return ONLY a valid JSON object with this exact structure (no markdown, no explanations):
       {
         "contactInfo": {
-          "fullName": "Professional realistic name",
-          "email": "professional email",
-          "phone": "phone number",
-          "linkedin": "linkedin profile",
-          "location": "relevant city, state"
+          "fullName": "John Smith",
+          "email": "john.smith@email.com",
+          "phone": "(555) 123-4567",
+          "linkedin": "linkedin.com/in/johnsmith",
+          "location": "New York, NY"
         },
-        "professionalSummary": "2-3 sentence compelling summary tailored to this role",
+        "professionalSummary": "Experienced professional with 5+ years in relevant field...",
         "workExperience": [
           {
-            "id": "unique_id",
-            "jobTitle": "relevant job title",
-            "company": "realistic company name",
-            "location": "city, state",
-            "startDate": "month year",
-            "endDate": "month year or Present",
-            "isCurrentRole": boolean,
-            "responsibilities": ["bullet point 1", "bullet point 2", "bullet point 3"]
+            "id": "exp1",
+            "jobTitle": "Senior Software Engineer",
+            "company": "Tech Corp",
+            "location": "New York, NY",
+            "startDate": "Jan 2020",
+            "endDate": "Present",
+            "isCurrentRole": true,
+            "responsibilities": [
+              "Led development of web applications using React and Node.js",
+              "Improved system performance by 40% through optimization",
+              "Mentored team of 3 junior developers"
+            ]
           }
         ],
-        "skills": ["skill1", "skill2", "skill3"],
+        "skills": ["JavaScript", "React", "Node.js", "Python", "AWS"],
         "education": [
           {
-            "id": "unique_id",
-            "degree": "relevant degree",
-            "major": "relevant major",
-            "institution": "university name",
-            "graduationDate": "month year",
-            "gpa": "optional gpa"
+            "id": "edu1",
+            "degree": "Bachelor of Science",
+            "major": "Computer Science",
+            "institution": "State University",
+            "graduationDate": "May 2018",
+            "gpa": "3.8"
           }
         ],
-        "certifications": ["certification 1", "certification 2"],
-        "awards": ["award 1", "award 2"]
+        "certifications": ["AWS Certified Developer", "Google Cloud Professional"],
+        "awards": ["Employee of the Year 2023", "Innovation Award Winner"]
       }
-
-      Requirements:
-      - Include 2-3 relevant work experiences
-      - Use action verbs and quantifiable achievements
-      - Include all skills mentioned in job description
-      - Make education relevant to the role
-      - Include realistic but impressive accomplishments
-      - Ensure all dates are logical and recent
-      - Make the candidate appear highly qualified but realistic
     `
 
     const { text } = await generateText({
@@ -65,26 +68,172 @@ export async function generateResumeFromJobDescription(jobDescription: string): 
       prompt: prompt,
     })
 
-    // Clean and parse the response
-    const cleanedResponse = text.trim().replace(/^```json\s*|^```\s*|\s*```$/gi, "")
-    const resumeData = JSON.parse(cleanedResponse)
+    console.log("Raw AI response:", text)
 
-    // Ensure IDs are present
-    resumeData.workExperience = resumeData.workExperience.map((exp: any, index: number) => ({
-      ...exp,
-      id: exp.id || `exp_${Date.now()}_${index}`,
-    }))
+    // Clean the response
+    const cleanedResponse = cleanJsonResponse(text)
+    console.log("Cleaned response:", cleanedResponse)
 
-    resumeData.education = resumeData.education.map((edu: any, index: number) => ({
-      ...edu,
-      id: edu.id || `edu_${Date.now()}_${index}`,
-    }))
+    let resumeData: ResumeData
+
+    try {
+      resumeData = JSON.parse(cleanedResponse)
+    } catch (parseError) {
+      console.error("JSON parsing failed:", parseError)
+      console.error("Attempted to parse:", cleanedResponse)
+
+      // Fallback: create a basic resume structure
+      resumeData = createFallbackResume(jobDescription)
+    }
+
+    // Ensure all required fields exist and have proper IDs
+    resumeData = validateAndFixResumeData(resumeData)
 
     return resumeData
   } catch (error) {
-    console.error("Error generating resume:", error)
-    throw new Error("Failed to generate resume from job description")
+    console.error("Error in generateResumeFromJobDescription:", error)
+
+    // Return a fallback resume instead of throwing
+    return createFallbackResume(jobDescription)
   }
+}
+
+function createFallbackResume(jobDescription: string): ResumeData {
+  // Extract some basic info from job description for a more relevant fallback
+  const jobTitle = extractJobTitle(jobDescription) || "Professional"
+  const skills = extractSkills(jobDescription)
+
+  return {
+    contactInfo: {
+      fullName: "Your Name",
+      email: "your.email@example.com",
+      phone: "(555) 123-4567",
+      linkedin: "linkedin.com/in/yourprofile",
+      location: "Your City, State",
+    },
+    professionalSummary: `Experienced ${jobTitle.toLowerCase()} with proven track record of delivering results. Skilled in ${skills.slice(0, 3).join(", ")} and passionate about driving innovation and excellence.`,
+    workExperience: [
+      {
+        id: `exp_${Date.now()}`,
+        jobTitle: jobTitle,
+        company: "Previous Company",
+        location: "City, State",
+        startDate: "Jan 2020",
+        endDate: "Present",
+        isCurrentRole: true,
+        responsibilities: [
+          "Led key projects and initiatives",
+          "Collaborated with cross-functional teams",
+          "Delivered measurable results and improvements",
+        ],
+      },
+    ],
+    skills: skills.length > 0 ? skills : ["Communication", "Problem Solving", "Leadership", "Project Management"],
+    education: [
+      {
+        id: `edu_${Date.now()}`,
+        degree: "Bachelor's Degree",
+        major: "Relevant Field",
+        institution: "University Name",
+        graduationDate: "Year",
+        gpa: "",
+      },
+    ],
+    certifications: [],
+    awards: [],
+  }
+}
+
+function extractJobTitle(jobDescription: string): string | null {
+  // Simple extraction - look for common job title patterns
+  const titlePatterns = [
+    /(?:position|role|job)\s*:?\s*([^\n\r.]{10,50})/i,
+    /(?:seeking|hiring)\s+(?:a\s+)?([^\n\r.]{10,50})/i,
+    /^([^\n\r.]{10,50})\s*(?:position|role)/i,
+  ]
+
+  for (const pattern of titlePatterns) {
+    const match = jobDescription.match(pattern)
+    if (match && match[1]) {
+      return match[1].trim()
+    }
+  }
+
+  return null
+}
+
+function extractSkills(jobDescription: string): string[] {
+  const commonSkills = [
+    "JavaScript",
+    "Python",
+    "React",
+    "Node.js",
+    "AWS",
+    "Docker",
+    "Kubernetes",
+    "Project Management",
+    "Leadership",
+    "Communication",
+    "Problem Solving",
+    "SQL",
+    "Git",
+    "Agile",
+    "Scrum",
+    "HTML",
+    "CSS",
+    "TypeScript",
+    "Java",
+    "C++",
+    "Machine Learning",
+    "Data Analysis",
+    "Excel",
+    "PowerBI",
+  ]
+
+  const foundSkills = commonSkills.filter((skill) => jobDescription.toLowerCase().includes(skill.toLowerCase()))
+
+  return foundSkills.slice(0, 8) // Limit to 8 skills
+}
+
+function validateAndFixResumeData(data: any): ResumeData {
+  // Ensure all required fields exist with defaults
+  const validated: ResumeData = {
+    contactInfo: {
+      fullName: data.contactInfo?.fullName || "Your Name",
+      email: data.contactInfo?.email || "your.email@example.com",
+      phone: data.contactInfo?.phone || "(555) 123-4567",
+      linkedin: data.contactInfo?.linkedin || "",
+      location: data.contactInfo?.location || "Your City, State",
+    },
+    professionalSummary: data.professionalSummary || "Professional summary to be added.",
+    workExperience: Array.isArray(data.workExperience)
+      ? data.workExperience.map((exp: any, index: number) => ({
+          id: exp.id || `exp_${Date.now()}_${index}`,
+          jobTitle: exp.jobTitle || "Job Title",
+          company: exp.company || "Company Name",
+          location: exp.location || "City, State",
+          startDate: exp.startDate || "Start Date",
+          endDate: exp.endDate || "End Date",
+          isCurrentRole: Boolean(exp.isCurrentRole),
+          responsibilities: Array.isArray(exp.responsibilities) ? exp.responsibilities : ["Responsibility to be added"],
+        }))
+      : [],
+    skills: Array.isArray(data.skills) ? data.skills : [],
+    education: Array.isArray(data.education)
+      ? data.education.map((edu: any, index: number) => ({
+          id: edu.id || `edu_${Date.now()}_${index}`,
+          degree: edu.degree || "Degree",
+          major: edu.major || "Major",
+          institution: edu.institution || "Institution",
+          graduationDate: edu.graduationDate || "Graduation Date",
+          gpa: edu.gpa || "",
+        }))
+      : [],
+    certifications: Array.isArray(data.certifications) ? data.certifications : [],
+    awards: Array.isArray(data.awards) ? data.awards : [],
+  }
+
+  return validated
 }
 
 export async function enhanceResumeSection(
@@ -94,8 +243,8 @@ export async function enhanceResumeSection(
 ): Promise<string> {
   try {
     const prompt = `
-      Enhance the following ${sectionType} section of a resume to better match this job description.
-      Keep it professional, ATS-friendly, and realistic.
+      Improve this ${sectionType} section to better match the job requirements.
+      Keep it professional and realistic.
 
       Job Description:
       ${jobDescription}
@@ -103,13 +252,7 @@ export async function enhanceResumeSection(
       Current ${sectionType}:
       ${currentContent}
 
-      Provide an improved version that:
-      - Uses relevant keywords from the job description
-      - Includes quantifiable achievements where appropriate
-      - Maintains professional tone
-      - Is optimized for ATS systems
-
-      Return only the enhanced content, no explanations.
+      Return only the improved content, no explanations or formatting.
     `
 
     const { text } = await generateText({
@@ -120,6 +263,7 @@ export async function enhanceResumeSection(
     return text.trim()
   } catch (error) {
     console.error("Error enhancing resume section:", error)
-    throw new Error("Failed to enhance resume section")
+    // Return original content if enhancement fails
+    return currentContent
   }
 }

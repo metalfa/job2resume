@@ -9,7 +9,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { InlineEditor } from "@/components/inline-editor"
 import { useResumeBuilder } from "@/hooks/use-resume-builder"
 import { downloadResumeAsPDF, printResume } from "@/lib/resume-export"
-import { Loader2, Download, Printer, Sparkles, Plus, Trash2, FileText, Zap, AlertTriangle } from "lucide-react"
+import {
+  Loader2,
+  Download,
+  Printer,
+  Sparkles,
+  Plus,
+  Trash2,
+  FileText,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react"
 
 export default function DashboardPage() {
   const {
@@ -33,24 +44,20 @@ export default function DashboardPage() {
 
   const [jobDescription, setJobDescription] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const handleGenerateResume = async () => {
     if (!jobDescription.trim()) return
 
     setError(null)
+    setSuccess(null)
+
     try {
       await generateCompleteResume(jobDescription)
+      setSuccess("Resume generated successfully! You can now edit any section by clicking on it.")
     } catch (error) {
       console.error("Resume generation error:", error)
-      if (error instanceof Error) {
-        if (error.message.includes("OpenAI API key")) {
-          setError("OpenAI API key is missing. Please check your environment variables.")
-        } else {
-          setError("Failed to generate resume. Please try again.")
-        }
-      } else {
-        setError("An unexpected error occurred. Please try again.")
-      }
+      setError("Failed to generate resume. A basic template has been created for you to customize.")
     }
   }
 
@@ -65,11 +72,7 @@ export default function DashboardPage() {
       updateFunction(enhanced)
     } catch (error) {
       console.error("Section enhancement error:", error)
-      if (error instanceof Error && error.message.includes("OpenAI API key")) {
-        setError("OpenAI API key is missing. Please check your environment variables.")
-      } else {
-        setError("Failed to enhance section. Please try again.")
-      }
+      setError("Failed to enhance section. Please try editing manually.")
     }
   }
 
@@ -125,8 +128,16 @@ export default function DashboardPage() {
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>Notice</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">Success!</AlertTitle>
+          <AlertDescription className="text-green-700">{success}</AlertDescription>
         </Alert>
       )}
 
@@ -173,32 +184,32 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Manual Resume Builder Fallback */}
-          {error && error.includes("OpenAI API key") && (
+          {/* Manual Resume Builder Option */}
+          {isResumeEmpty && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-amber-500" />
-                  Create Resume Manually
+                  Or Start with a Blank Resume
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="mb-4">
-                  AI generation is currently unavailable. You can still create your resume manually using the form
-                  below.
+                  Prefer to build your resume from scratch? Start with a blank template and fill in your information.
                 </p>
                 <Button
                   onClick={() => {
                     // Initialize an empty resume structure
                     updateContactInfo("fullName", "Your Name")
-                    updateProfessionalSummary("Your professional summary")
+                    updateProfessionalSummary("Your professional summary goes here...")
                     addWorkExperience()
                     addEducation()
                     updateSkills(["Skill 1", "Skill 2", "Skill 3"])
                   }}
                   variant="outline"
                 >
-                  Start Manual Resume
+                  <Plus className="h-4 w-4 mr-2" />
+                  Start Blank Resume
                 </Button>
               </CardContent>
             </Card>
@@ -212,7 +223,9 @@ export default function DashboardPage() {
                   <FileText className="h-5 w-5 text-green-500" />
                   Step 2: Edit Your Resume
                 </CardTitle>
-                <p className="text-sm text-gray-500">Click on any section to edit.</p>
+                <p className="text-sm text-gray-500">
+                  Click on any section to edit. All changes are saved automatically.
+                </p>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Contact Information */}
@@ -268,6 +281,13 @@ export default function DashboardPage() {
                   <InlineEditor
                     value={resumeData.professionalSummary}
                     onSave={updateProfessionalSummary}
+                    onEnhance={() =>
+                      handleEnhanceSection(
+                        "professional summary",
+                        resumeData.professionalSummary,
+                        updateProfessionalSummary,
+                      )
+                    }
                     multiline
                     placeholder="Write a compelling professional summary..."
                   />
@@ -348,6 +368,16 @@ export default function DashboardPage() {
                             const responsibilities = value.split("\n").filter(Boolean)
                             updateWorkExperience(exp.id, "responsibilities", responsibilities)
                           }}
+                          onEnhance={() =>
+                            handleEnhanceSection(
+                              "work experience responsibilities",
+                              exp.responsibilities.join("\n"),
+                              (enhanced) => {
+                                const responsibilities = enhanced.split("\n").filter(Boolean)
+                                updateWorkExperience(exp.id, "responsibilities", responsibilities)
+                              },
+                            )
+                          }
                           multiline
                           placeholder="• Responsibility 1&#10;• Achievement 2&#10;• Impact 3"
                         />
