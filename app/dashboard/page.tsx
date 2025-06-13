@@ -7,7 +7,7 @@ import { ResumeUpload } from "@/components/resume-upload"
 import { ResumeTemplates } from "@/components/resume-templates"
 import { GenerateButton } from "@/components/generate-button"
 import { Button } from "@/components/ui/button"
-import { Download, AlertCircle } from "lucide-react"
+import { Download, AlertCircle, Info } from "lucide-react"
 import { generateTailoredResume, extractResumeContent, type JobAnalysis, type ResumeData } from "@/lib/resume-ai"
 import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
 
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedResume, setGeneratedResume] = useState<TailoredResume | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showApiKeyWarning, setShowApiKeyWarning] = useState(false)
 
   const handleGenerate = async () => {
     if (!jobAnalysis || !resumeData) {
@@ -28,6 +29,7 @@ export default function DashboardPage() {
 
     setIsGenerating(true)
     setError(null)
+    setShowApiKeyWarning(false)
 
     try {
       // Extract content from uploaded file if needed
@@ -36,9 +38,14 @@ export default function DashboardPage() {
         resumeData.content = extractedContent
       }
 
-      // Generate tailored resume using AI
+      // Generate tailored resume using AI (or mock data if no API key)
       const tailoredResume = await generateTailoredResume(jobAnalysis, resumeData)
       setGeneratedResume(tailoredResume)
+
+      // Show warning if using mock data
+      if (!process.env.OPENAI_API_KEY) {
+        setShowApiKeyWarning(true)
+      }
     } catch (error) {
       console.error("Error generating resume:", error)
       setError("Failed to generate tailored resume. Please try again.")
@@ -100,6 +107,20 @@ export default function DashboardPage() {
               </TabsContent>
             </Tabs>
           </div>
+
+          {showApiKeyWarning && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start gap-2">
+              <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-blue-800">Demo Mode</h3>
+                <p className="text-sm text-blue-700">
+                  OpenAI API key not configured. The resume was generated using smart templating based on your job
+                  description and resume data. For full AI-powered generation, please configure the OPENAI_API_KEY
+                  environment variable.
+                </p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-2">
