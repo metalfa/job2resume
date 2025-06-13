@@ -100,12 +100,25 @@ export function ResumeUpload({ onComplete }: ResumeUploadProps) {
               className="hidden"
               accept=".pdf,.docx,.doc"
               onChange={handleFileChange}
+              ref={(input) => {
+                if (input) {
+                  ;(window as any).resumeFileInput = input
+                }
+              }}
             />
-            <label htmlFor="resume-upload">
-              <Button variant="outline" type="button" className="cursor-pointer">
-                Browse Files
-              </Button>
-            </label>
+            <Button
+              variant="outline"
+              type="button"
+              className="cursor-pointer"
+              onClick={() => {
+                const fileInput = document.getElementById("resume-upload") as HTMLInputElement
+                if (fileInput) {
+                  fileInput.click()
+                }
+              }}
+            >
+              Browse Files
+            </Button>
           </div>
         </div>
       ) : (
