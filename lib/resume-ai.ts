@@ -9,16 +9,42 @@ export interface JobAnalysis {
   keyResponsibilities: string[]
 }
 
-export interface ResumeData {
-  type: "upload" | "template"
-  content?: string // For uploaded files
-  data?: {
-    fullName: string
+interface PerfectResumeData {
+  personalInfo: {
+    name: string
     email: string
     phone: string
     location: string
-    summary: string
   }
+  summary: string
+  skills: string[]
+  experience: Array<{
+    title: string
+    company: string
+    location: string
+    duration: string
+    achievements: string[]
+  }>
+  education: Array<{
+    degree: string
+    institution: string
+    location: string
+    year: string
+  }>
+}
+
+export interface ResumeData {
+  type: "upload" | "template" | "perfect"
+  content?: string // For uploaded files
+  data?:
+    | {
+        fullName: string
+        email: string
+        phone: string
+        location: string
+        summary: string
+      }
+    | PerfectResumeData // Add support for perfect resume data
   templateId?: string
   file?: File
 }
@@ -44,7 +70,9 @@ export async function generateTailoredResume(jobAnalysis: JobAnalysis, resumeDat
            Phone: ${resumeData.data?.phone}
            Location: ${resumeData.data?.location}
            Summary: ${resumeData.data?.summary}`
-          : `Uploaded Resume Content: ${resumeData.content || "Content extraction pending"}`
+          : resumeData.type === "upload"
+            ? `Uploaded Resume Content: ${resumeData.content || "Content extraction pending"}`
+            : `Perfect Resume Data: ${JSON.stringify(resumeData.data)}`
       }
 
       Instructions:
