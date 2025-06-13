@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Wand2, Edit3, Save, Plus, Trash2 } from "lucide-react"
@@ -96,6 +96,11 @@ export function PerfectResumeGenerator({ jobAnalysis, onComplete }: PerfectResum
       setGeneratedResume(perfectResume)
       setEditableResume(perfectResume)
       setIsGenerating(false)
+
+      // Call onComplete when resume is first generated
+      if (onComplete) {
+        onComplete(perfectResume)
+      }
     }, 2000)
   }
 
@@ -171,12 +176,6 @@ export function PerfectResumeGenerator({ jobAnalysis, onComplete }: PerfectResum
       experience: prev!.experience.filter((_, i) => i !== index),
     }))
   }
-
-  useEffect(() => {
-    if (generatedResume && onComplete) {
-      onComplete(generatedResume)
-    }
-  }, [generatedResume, onComplete])
 
   if (!jobAnalysis) {
     return (
