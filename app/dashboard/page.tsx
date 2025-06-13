@@ -19,8 +19,7 @@ import {
   FileText,
   Palette,
 } from "lucide-react"
-import { analyzeJobDescription } from "@/lib/openai"
-import { generateTailoredResume, type JobAnalysis } from "@/lib/resume-ai"
+import { analyzeJobDescriptionAction, generateResumeAction } from "@/app/actions/resume-actions"
 import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
 
 export default function DashboardPage() {
@@ -45,34 +44,38 @@ export default function DashboardPage() {
     setSuccess(null)
 
     try {
-      // Step 1: Analyze job description
-      const jobAnalysis: JobAnalysis = await analyzeJobDescription(jobDescription)
+      // Step 1: Analyze job description using server action
+      const analysisResult = await analyzeJobDescriptionAction(jobDescription)
 
-      // Step 2: Generate tailored resume with default professional data
-      const defaultResumeData = {
-        type: "perfect" as const,
-        data: {
-          personalInfo: {
-            name: "Your Name",
-            email: "your.email@example.com",
-            phone: "(555) 123-4567",
-            location: "Your City, State",
-          },
-          summary: "Professional summary will be generated based on the job description",
-          skills: [],
-          experience: [],
-          education: [],
-        },
+      if (analysisResult.error) {
+        setError(analysisResult.error)
+        return
       }
 
-      const tailoredResume = await generateTailoredResume(jobAnalysis, defaultResumeData)
+      if (!analysisResult.success || !analysisResult.data) {
+        setError("Failed to analyze job description")
+        return
+      }
 
-      setGeneratedResume(tailoredResume)
-      setEditableResume(tailoredResume)
+      // Step 2: Generate tailored resume using server action
+      const resumeResult = await generateResumeAction(analysisResult.data)
+
+      if (resumeResult.error) {
+        setError(resumeResult.error)
+        return
+      }
+
+      if (!resumeResult.success || !resumeResult.data) {
+        setError("Failed to generate resume")
+        return
+      }
+
+      setGeneratedResume(resumeResult.data)
+      setEditableResume(resumeResult.data)
       setSuccess("Resume generated successfully! You can now edit and customize it.")
     } catch (error) {
       console.error("Error generating resume:", error)
-      setError("Failed to generate resume. Please try again with a different job description.")
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsAnalyzing(false)
     }
