@@ -3,8 +3,9 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Wand2, Edit3, Save, Plus, Trash2 } from "lucide-react"
+import { Loader2, Wand2, Edit3, Save, Plus, Trash2, Download, Printer } from "lucide-react"
 import type { JobAnalysis } from "@/lib/resume-ai"
+import { downloadResumeAsPDF } from "@/lib/pdf-generator"
 
 interface PerfectResumeData {
   personalInfo: {
@@ -177,6 +178,25 @@ export function PerfectResumeGenerator({ jobAnalysis, onComplete }: PerfectResum
     }))
   }
 
+  const handleDownloadPDF = () => {
+    if (!generatedResume) return
+
+    // Convert the generatedResume to the format expected by downloadResumeAsPDF
+    const pdfResume = {
+      personalInfo: generatedResume.personalInfo,
+      summary: generatedResume.summary,
+      skills: generatedResume.skills,
+      experience: generatedResume.experience,
+      education: generatedResume.education,
+    }
+
+    downloadResumeAsPDF(pdfResume)
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
   if (!jobAnalysis) {
     return (
       <div className="text-center py-8">
@@ -227,10 +247,20 @@ export function PerfectResumeGenerator({ jobAnalysis, onComplete }: PerfectResum
               Save Changes
             </Button>
           ) : (
-            <Button onClick={handleEdit} variant="outline" size="sm">
-              <Edit3 className="mr-2 h-4 w-4" />
-              Edit Resume
-            </Button>
+            <>
+              <Button onClick={handleEdit} variant="outline" size="sm">
+                <Edit3 className="mr-2 h-4 w-4" />
+                Edit Resume
+              </Button>
+              <Button onClick={handleDownloadPDF} variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+              <Button onClick={handlePrint} variant="outline" size="sm">
+                <Printer className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+            </>
           )}
         </div>
       </div>
