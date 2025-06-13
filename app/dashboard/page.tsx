@@ -11,6 +11,7 @@ import { Download, AlertCircle } from "lucide-react"
 import { extractResumeContent, type JobAnalysis, type ResumeData } from "@/lib/resume-ai"
 import { generateResumeAction } from "@/app/actions/resume-generation"
 import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
+import { PerfectResumeGenerator } from "@/components/perfect-resume-generator"
 
 export default function DashboardPage() {
   const [jobDescriptionComplete, setJobDescriptionComplete] = useState(false)
@@ -84,9 +85,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg border shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Step 2: Your Resume</h2>
             <Tabs defaultValue="upload" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="upload">Upload Resume</TabsTrigger>
                 <TabsTrigger value="template">Use Template</TabsTrigger>
+                <TabsTrigger value="perfect">Perfect Resume</TabsTrigger>
               </TabsList>
               <TabsContent value="upload" className="mt-0">
                 <ResumeUpload
@@ -101,6 +103,15 @@ export default function DashboardPage() {
                   onComplete={(template) => {
                     setResumeComplete(true)
                     setResumeData({ type: "template", data: template.data, templateId: template.id })
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="perfect" className="mt-0">
+                <PerfectResumeGenerator
+                  jobAnalysis={jobAnalysis}
+                  onComplete={(perfectResume) => {
+                    setResumeComplete(true)
+                    setResumeData({ type: "perfect", data: perfectResume })
                   }}
                 />
               </TabsContent>
