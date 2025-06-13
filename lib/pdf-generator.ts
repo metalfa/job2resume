@@ -24,120 +24,49 @@ export interface TailoredResume {
 
 export function generateResumeHTML(resume: TailoredResume): string {
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${resume.personalInfo.name} - Resume</title>
-      <style>
-        body {
-          font-family: 'Arial', sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-          background: white;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 2px solid #2563eb;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-        }
-        .name {
-          font-size: 28px;
-          font-weight: bold;
-          color: #1e40af;
-          margin-bottom: 10px;
-        }
-        .contact-info {
-          font-size: 14px;
-          color: #666;
-        }
-        .section {
-          margin-bottom: 25px;
-        }
-        .section-title {
-          font-size: 18px;
-          font-weight: bold;
-          color: #1e40af;
-          border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
-          text-transform: uppercase;
-        }
-        .experience-item, .education-item {
-          margin-bottom: 20px;
-        }
-        .job-title {
-          font-weight: bold;
-          font-size: 16px;
-        }
-        .company {
-          font-style: italic;
-          color: #666;
-        }
-        .duration {
-          float: right;
-          color: #666;
-          font-size: 14px;
-        }
-        .achievements {
-          margin-top: 8px;
-        }
-        .achievements li {
-          margin-bottom: 4px;
-        }
-        .skills-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .skill-tag {
-          background: #f3f4f6;
-          padding: 4px 12px;
-          border-radius: 4px;
-          font-size: 14px;
-          border: 1px solid #d1d5db;
-        }
-        .summary {
-          font-style: italic;
-          line-height: 1.7;
-          color: #374151;
-        }
-      </style>
-    </head>
-    <body>
+    <div class="resume-container">
+      <!-- Header Section -->
       <div class="header">
         <div class="name">${resume.personalInfo.name}</div>
         <div class="contact-info">
-          ${resume.personalInfo.email} | ${resume.personalInfo.phone} | ${resume.personalInfo.location}
+          <span class="contact-item">${resume.personalInfo.email}</span>
+          <span class="contact-separator">•</span>
+          <span class="contact-item">${resume.personalInfo.phone}</span>
+          <span class="contact-separator">•</span>
+          <span class="contact-item">${resume.personalInfo.location}</span>
         </div>
       </div>
 
+      <!-- Professional Summary -->
       <div class="section">
-        <div class="section-title">Professional Summary</div>
-        <div class="summary">${resume.summary}</div>
+        <div class="section-title">PROFESSIONAL SUMMARY</div>
+        <div class="summary-content">${resume.summary}</div>
       </div>
 
+      <!-- Core Competencies -->
       <div class="section">
-        <div class="section-title">Skills</div>
-        <div class="skills-list">
-          ${resume.skills.map((skill) => `<span class="skill-tag">${skill}</span>`).join("")}
+        <div class="section-title">CORE COMPETENCIES</div>
+        <div class="skills-grid">
+          ${resume.skills.map((skill) => `<span class="skill-item">${skill}</span>`).join("")}
         </div>
       </div>
 
+      <!-- Professional Experience -->
       <div class="section">
-        <div class="section-title">Experience</div>
+        <div class="section-title">PROFESSIONAL EXPERIENCE</div>
         ${resume.experience
           .map(
             (exp) => `
           <div class="experience-item">
-            <div class="job-title">${exp.title}</div>
-            <div class="company">${exp.company} | ${exp.location} <span class="duration">${exp.duration}</span></div>
-            <ul class="achievements">
-              ${exp.achievements.map((achievement) => `<li>${achievement}</li>`).join("")}
+            <div class="experience-header">
+              <div class="job-info">
+                <div class="job-title">${exp.title}</div>
+                <div class="company-info">${exp.company} | ${exp.location}</div>
+              </div>
+              <div class="duration">${exp.duration}</div>
+            </div>
+            <ul class="achievements-list">
+              ${exp.achievements.map((achievement) => `<li class="achievement-item">${achievement}</li>`).join("")}
             </ul>
           </div>
         `,
@@ -145,27 +74,30 @@ export function generateResumeHTML(resume: TailoredResume): string {
           .join("")}
       </div>
 
+      <!-- Education -->
       <div class="section">
-        <div class="section-title">Education</div>
+        <div class="section-title">EDUCATION</div>
         ${resume.education
           .map(
             (edu) => `
           <div class="education-item">
-            <div class="job-title">${edu.degree}</div>
-            <div class="company">${edu.institution} | ${edu.location} <span class="duration">${edu.year}</span></div>
+            <div class="education-header">
+              <div class="degree-info">
+                <div class="degree">${edu.degree}</div>
+                <div class="institution">${edu.institution} | ${edu.location}</div>
+              </div>
+              <div class="graduation-year">${edu.year}</div>
+            </div>
           </div>
         `,
           )
           .join("")}
       </div>
-    </body>
-    </html>
+    </div>
   `
 }
 
 export async function downloadResumeAsPDF(resume: TailoredResume) {
-  // We'll use the browser's print functionality to generate a PDF
-  // First, create a new window with the resume HTML
   const htmlContent = generateResumeHTML(resume)
   const printWindow = window.open("", "_blank")
 
@@ -178,8 +110,11 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${resume.personalInfo.name} - Resume</title>
+      <title>${resume.personalInfo.name} - Professional Resume</title>
+      <meta charset="UTF-8">
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         @media print {
           body {
             -webkit-print-color-adjust: exact;
@@ -189,93 +124,240 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
             size: letter;
             margin: 0.5in;
           }
+          .resume-container {
+            page-break-inside: avoid;
+          }
+          .section {
+            page-break-inside: avoid;
+          }
+          .experience-item {
+            page-break-inside: avoid;
+            margin-bottom: 20px;
+          }
         }
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
         body {
-          font-family: 'Arial', sans-serif;
-          line-height: 1.6;
-          color: #333;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          line-height: 1.5;
+          color: #1a1a1a;
+          background: white;
+          font-size: 11pt;
+        }
+
+        .resume-container {
           max-width: 8.5in;
           margin: 0 auto;
           padding: 0.5in;
           background: white;
         }
+
+        /* Header Styles */
         .header {
           text-align: center;
-          border-bottom: 2px solid #2563eb;
-          padding-bottom: 20px;
           margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #2563eb;
         }
+
         .name {
-          font-size: 28px;
-          font-weight: bold;
+          font-size: 28pt;
+          font-weight: 700;
           color: #1e40af;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
         }
+
         .contact-info {
-          font-size: 14px;
-          color: #666;
+          font-size: 10pt;
+          color: #4b5563;
+          font-weight: 400;
         }
+
+        .contact-item {
+          display: inline;
+        }
+
+        .contact-separator {
+          margin: 0 8px;
+          color: #9ca3af;
+        }
+
+        /* Section Styles */
         .section {
           margin-bottom: 25px;
         }
+
         .section-title {
-          font-size: 18px;
-          font-weight: bold;
+          font-size: 12pt;
+          font-weight: 600;
           color: #1e40af;
-          border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
           text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 12px;
+          padding-bottom: 4px;
+          border-bottom: 1px solid #e5e7eb;
         }
-        .experience-item, .education-item {
-          margin-bottom: 20px;
+
+        /* Summary Styles */
+        .summary-content {
+          font-size: 11pt;
+          line-height: 1.6;
+          color: #374151;
+          text-align: justify;
+          font-weight: 400;
         }
-        .job-title {
-          font-weight: bold;
-          font-size: 16px;
-        }
-        .company {
-          font-style: italic;
-          color: #666;
-        }
-        .duration {
-          float: right;
-          color: #666;
-          font-size: 14px;
-        }
-        .achievements {
-          margin-top: 8px;
-        }
-        .achievements li {
-          margin-bottom: 4px;
-        }
-        .skills-list {
+
+        /* Skills Styles */
+        .skills-grid {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
+          margin-top: 8px;
         }
-        .skill-tag {
-          background: #f3f4f6;
+
+        .skill-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           padding: 4px 12px;
           border-radius: 4px;
-          font-size: 14px;
-          border: 1px solid #d1d5db;
+          font-size: 9pt;
+          font-weight: 500;
+          color: #475569;
+          display: inline-block;
         }
-        .summary {
+
+        /* Experience Styles */
+        .experience-item {
+          margin-bottom: 20px;
+          page-break-inside: avoid;
+        }
+
+        .experience-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 8px;
+        }
+
+        .job-info {
+          flex: 1;
+        }
+
+        .job-title {
+          font-size: 12pt;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 2px;
+        }
+
+        .company-info {
+          font-size: 10pt;
+          color: #6b7280;
+          font-weight: 500;
           font-style: italic;
-          line-height: 1.7;
+        }
+
+        .duration {
+          font-size: 10pt;
+          color: #6b7280;
+          font-weight: 500;
+          text-align: right;
+          white-space: nowrap;
+          margin-left: 20px;
+        }
+
+        .achievements-list {
+          list-style: none;
+          margin-left: 0;
+          padding-left: 0;
+        }
+
+        .achievement-item {
+          position: relative;
+          padding-left: 16px;
+          margin-bottom: 4px;
+          font-size: 10pt;
+          line-height: 1.5;
           color: #374151;
+        }
+
+        .achievement-item::before {
+          content: "▸";
+          position: absolute;
+          left: 0;
+          color: #2563eb;
+          font-weight: bold;
+        }
+
+        /* Education Styles */
+        .education-item {
+          margin-bottom: 12px;
+        }
+
+        .education-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+
+        .degree-info {
+          flex: 1;
+        }
+
+        .degree {
+          font-size: 11pt;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 2px;
+        }
+
+        .institution {
+          font-size: 10pt;
+          color: #6b7280;
+          font-style: italic;
+        }
+
+        .graduation-year {
+          font-size: 10pt;
+          color: #6b7280;
+          font-weight: 500;
+          white-space: nowrap;
+          margin-left: 20px;
+        }
+
+        /* Print Optimizations */
+        @media print {
+          .resume-container {
+            padding: 0.3in;
+          }
+          
+          .header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+          }
+          
+          .section {
+            margin-bottom: 18px;
+          }
+          
+          .experience-item {
+            margin-bottom: 16px;
+          }
         }
       </style>
     </head>
     <body>
       ${htmlContent}
       <script>
-        // Automatically trigger print dialog when the content is loaded
         window.onload = function() {
           setTimeout(() => {
             window.print();
-            // Close the window after printing (or if print is canceled)
             setTimeout(() => {
               window.close();
             }, 500);

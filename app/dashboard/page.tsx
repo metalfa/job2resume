@@ -77,6 +77,13 @@ export default function DashboardPage() {
                   jobTitle: analysis.jobTitle || "",
                   companyName: analysis.companyName || "",
                   keyResponsibilities: analysis.keyResponsibilities || [],
+                  industryContext: analysis.industryContext || "",
+                  seniority: analysis.seniority || "",
+                  companySize: analysis.companySize || "",
+                  techStack: analysis.techStack || [],
+                  softSkills: analysis.softSkills || [],
+                  achievements: analysis.achievements || [],
+                  metrics: analysis.metrics || [],
                 })
               }}
             />
@@ -266,9 +273,12 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-dashed">
-            <h3 className="font-medium mb-2">Need Help?</h3>
-            <p className="text-sm text-gray-500 mb-4">Watch our quick tutorial on how to get the best results.</p>
-            <button className="text-sm text-primary font-medium hover:underline">Watch Tutorial</button>
+            <h3 className="font-medium mb-2">Enhanced AI Resume Generation</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Our advanced AI creates unique, quantifiable bullet points tailored to each job description, ensuring
+              maximum impact and ATS optimization.
+            </p>
+            <button className="text-sm text-primary font-medium hover:underline">Learn More</button>
           </div>
         </div>
       </div>
