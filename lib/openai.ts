@@ -1,52 +1,64 @@
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
-// Helper function to clean markdown code blocks from the response
 function cleanJsonResponse(text: string): string {
-  // Remove markdown code block syntax if present
   let cleaned = text.trim()
-
-  // Remove ```json or ``` at the beginning
   cleaned = cleaned.replace(/^```json\s*|^```\s*/i, "")
-
-  // Remove ``` at the end
   cleaned = cleaned.replace(/\s*```$/i, "")
-
   return cleaned
 }
 
 export async function analyzeJobDescription(description: string) {
   try {
     const prompt = `
-      Analyze the following job description and extract:
-      1. Required skills (technical and soft skills explicitly mentioned as requirements)
-      2. Preferred skills (skills mentioned as "nice to have" or "preferred")
-      3. Job title
-      4. Company name (if available)
-      
+      You are an expert job market analyst and resume strategist. Analyze the following job description and extract comprehensive information that will be used to create a perfectly tailored resume.
+
+      ANALYSIS REQUIREMENTS:
+      1. Extract all technical skills, tools, and technologies mentioned
+      2. Identify soft skills and leadership qualities required
+      3. Determine the seniority level and scope of responsibility
+      4. Understand the company context and industry
+      5. Identify key performance metrics and success criteria
+      6. Extract specific responsibilities and expectations
+      7. Determine the ideal candidate profile
+
+      Job Description:
+      ${description}
+
       Return ONLY the raw JSON without any markdown formatting, code blocks, or explanations.
       The response should be a valid JSON object with this exact structure:
       {
-        "requiredSkills": ["skill1", "skill2", ...],
-        "preferredSkills": ["skill1", "skill2", ...],
-        "jobTitle": "Title",
-        "companyName": "Company"
+        "jobTitle": "Exact job title from posting",
+        "companyName": "Company name if mentioned",
+        "industryContext": "Industry or business domain",
+        "seniority": "Entry/Mid/Senior/Lead/Executive level",
+        "companySize": "Startup/Small/Medium/Large/Enterprise",
+        "requiredSkills": ["technical skill 1", "technical skill 2", ...],
+        "preferredSkills": ["preferred skill 1", "preferred skill 2", ...],
+        "techStack": ["technology 1", "technology 2", ...],
+        "softSkills": ["soft skill 1", "soft skill 2", ...],
+        "keyResponsibilities": ["responsibility 1", "responsibility 2", ...],
+        "achievements": ["expected achievement 1", "expected achievement 2", ...],
+        "metrics": ["performance metric 1", "performance metric 2", ...],
+        "teamSize": "Expected team size or collaboration scope",
+        "reportingStructure": "Reporting relationship and hierarchy",
+        "growthOpportunities": ["growth opportunity 1", "growth opportunity 2", ...],
+        "companyValues": ["company value 1", "company value 2", ...],
+        "workEnvironment": "Remote/Hybrid/On-site and culture description"
       }
-      
-      Job Description:
-      ${description}
     `
 
     const { text } = await generateText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o", {
+        apiKey: process.env.OPENAI_API_KEY,
+      }),
       prompt: prompt,
+      temperature: 0.3, // Lower temperature for more consistent analysis
     })
 
-    // Clean the response in case it still contains markdown formatting
     const cleanedResponse = cleanJsonResponse(text)
 
     try {
-      // Parse the cleaned response as JSON
       return JSON.parse(cleanedResponse)
     } catch (parseError) {
       console.error("JSON parsing error:", parseError)

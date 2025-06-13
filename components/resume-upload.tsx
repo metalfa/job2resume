@@ -6,7 +6,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, File, X, CheckCircle } from "lucide-react"
 
-export function ResumeUpload() {
+interface ResumeUploadProps {
+  onComplete?: (file: File) => void
+}
+
+export function ResumeUpload({ onComplete }: ResumeUploadProps) {
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -96,12 +100,25 @@ export function ResumeUpload() {
               className="hidden"
               accept=".pdf,.docx,.doc"
               onChange={handleFileChange}
+              ref={(input) => {
+                if (input) {
+                  ;(window as any).resumeFileInput = input
+                }
+              }}
             />
-            <label htmlFor="resume-upload">
-              <Button variant="outline" type="button" className="cursor-pointer">
-                Browse Files
-              </Button>
-            </label>
+            <Button
+              variant="outline"
+              type="button"
+              className="cursor-pointer"
+              onClick={() => {
+                const fileInput = document.getElementById("resume-upload") as HTMLInputElement
+                if (fileInput) {
+                  fileInput.click()
+                }
+              }}
+            >
+              Browse Files
+            </Button>
           </div>
         </div>
       ) : (
@@ -149,7 +166,15 @@ export function ResumeUpload() {
           <p className="text-sm text-gray-500 mb-4">
             Your resume has been uploaded successfully. You can proceed to the next step.
           </p>
-          <Button>Continue</Button>
+          <Button
+            onClick={() => {
+              if (file && onComplete) {
+                onComplete(file)
+              }
+            }}
+          >
+            Continue
+          </Button>
         </div>
       )}
     </div>
