@@ -1,287 +1,654 @@
 "use client"
 
 import { useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { JobDescriptionForm } from "@/components/job-description-form"
-import { ResumeUpload } from "@/components/resume-upload"
-import { ResumeTemplates } from "@/components/resume-templates"
-import { GenerateButton } from "@/components/generate-button"
 import { Button } from "@/components/ui/button"
-import { Download, AlertCircle } from "lucide-react"
-import { extractResumeContent, type JobAnalysis, type ResumeData } from "@/lib/resume-ai"
-import { generateResumeAction } from "@/app/actions/resume-generation"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Loader2,
+  Wand2,
+  Download,
+  Save,
+  Edit3,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  FileText,
+  Palette,
+} from "lucide-react"
+import { analyzeJobDescription } from "@/lib/openai"
+import { generateTailoredResume, type JobAnalysis } from "@/lib/resume-ai"
 import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
-import { PerfectResumeGenerator } from "@/components/perfect-resume-generator"
 
 export default function DashboardPage() {
-  const [jobDescriptionComplete, setJobDescriptionComplete] = useState(false)
-  const [resumeComplete, setResumeComplete] = useState(false)
-  const [resumeData, setResumeData] = useState<ResumeData | null>(null)
-  const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [jobDescription, setJobDescription] = useState("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [generatedResume, setGeneratedResume] = useState<TailoredResume | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editableResume, setEditableResume] = useState<TailoredResume | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [resumeTemplate, setResumeTemplate] = useState("professional")
+  const [colorScheme, setColorScheme] = useState("blue")
 
-  const handleGenerate = async () => {
-    if (!jobAnalysis || !resumeData) {
-      setError("Please complete both job description analysis and resume selection")
+  const handleAnalyzeAndGenerate = async () => {
+    if (!jobDescription.trim()) {
+      setError("Please paste a job description first")
       return
     }
 
-    setIsGenerating(true)
+    setIsAnalyzing(true)
     setError(null)
+    setSuccess(null)
 
     try {
-      // Extract content from uploaded file if needed
-      if (resumeData.type === "upload" && resumeData.file && !resumeData.content) {
-        const extractedContent = await extractResumeContent(resumeData.file as File)
-        resumeData.content = extractedContent
+      // Step 1: Analyze job description
+      const jobAnalysis: JobAnalysis = await analyzeJobDescription(jobDescription)
+
+      // Step 2: Generate tailored resume with default professional data
+      const defaultResumeData = {
+        type: "perfect" as const,
+        data: {
+          personalInfo: {
+            name: "Your Name",
+            email: "your.email@example.com",
+            phone: "(555) 123-4567",
+            location: "Your City, State",
+          },
+          summary: "Professional summary will be generated based on the job description",
+          skills: [],
+          experience: [],
+          education: [],
+        },
       }
 
-      // Generate tailored resume using server action
-      const result = await generateResumeAction(jobAnalysis, resumeData)
+      const tailoredResume = await generateTailoredResume(jobAnalysis, defaultResumeData)
 
-      if (result.success) {
-        setGeneratedResume(result.data)
-      } else {
-        setError(result.error || "Failed to generate tailored resume")
-      }
+      setGeneratedResume(tailoredResume)
+      setEditableResume(tailoredResume)
+      setSuccess("Resume generated successfully! You can now edit and customize it.")
     } catch (error) {
       console.error("Error generating resume:", error)
-      setError("Failed to generate tailored resume. Please try again.")
+      setError("Failed to generate resume. Please try again with a different job description.")
     } finally {
-      setIsGenerating(false)
+      setIsAnalyzing(false)
+    }
+  }
+
+  const handleEdit = () => {
+    setIsEditing(true)
+    setSuccess(null)
+  }
+
+  const handleSaveChanges = () => {
+    if (editableResume) {
+      setGeneratedResume(editableResume)
+      setIsEditing(false)
+      setSuccess("Changes saved successfully!")
     }
   }
 
   const handleDownload = () => {
     if (generatedResume) {
-      downloadResumeAsPDF(generatedResume)
+      downloadResumeAsPDF(generatedResume, resumeTemplate, colorScheme)
+      setSuccess("Resume downloaded successfully!")
     }
   }
 
+  const handleInputChange = (field: string, value: string, section?: string, index?: number, subField?: string) => {
+    if (!editableResume) return
+
+    setEditableResume((prev) => {
+      if (!prev) return prev
+
+      const updated = { ...prev }
+
+      if (section === "personalInfo") {
+        updated.personalInfo = { ...updated.personalInfo, [field]: value }
+      } else if (section === "experience" && typeof index === "number") {
+        updated.experience = [...updated.experience]
+        if (subField === "achievements") {
+          const achievementIndex = Number.parseInt(field)
+          updated.experience[index].achievements[achievementIndex] = value
+        } else {
+          updated.experience[index] = { ...updated.experience[index], [field]: value }
+        }
+      } else if (section === "education" && typeof index === "number") {
+        updated.education = [...updated.education]
+        updated.education[index] = { ...updated.education[index], [field]: value }
+      } else if (field === "summary") {
+        updated.summary = value
+      } else if (field === "skills") {
+        updated.skills = value
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      }
+
+      return updated
+    })
+  }
+
+  const addExperience = () => {
+    if (!editableResume) return
+
+    setEditableResume((prev) => ({
+      ...prev!,
+      experience: [
+        ...prev!.experience,
+        {
+          title: "Job Title",
+          company: "Company Name",
+          location: "City, State",
+          duration: "Start Date - End Date",
+          achievements: ["Key achievement or responsibility"],
+        },
+      ],
+    }))
+  }
+
+  const removeExperience = (index: number) => {
+    if (!editableResume) return
+
+    setEditableResume((prev) => ({
+      ...prev!,
+      experience: prev!.experience.filter((_, i) => i !== index),
+    }))
+  }
+
+  const addAchievement = (expIndex: number) => {
+    if (!editableResume) return
+
+    setEditableResume((prev) => {
+      const updated = { ...prev! }
+      updated.experience = [...updated.experience]
+      updated.experience[expIndex] = {
+        ...updated.experience[expIndex],
+        achievements: [...updated.experience[expIndex].achievements, "New achievement"],
+      }
+      return updated
+    })
+  }
+
+  const removeAchievement = (expIndex: number, achIndex: number) => {
+    if (!editableResume) return
+
+    setEditableResume((prev) => {
+      const updated = { ...prev! }
+      updated.experience = [...updated.experience]
+      updated.experience[expIndex] = {
+        ...updated.experience[expIndex],
+        achievements: updated.experience[expIndex].achievements.filter((_, i) => i !== achIndex),
+      }
+      return updated
+    })
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-8">Create Your Tailored Resume</h1>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">AI Resume Generator</h1>
+        <p className="text-gray-600">Paste a job description and get a tailored resume in seconds</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
-          <div className="bg-white rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Step 1: Paste Job Description</h2>
-            <JobDescriptionForm
-              onAnalysisComplete={(analysis) => {
-                setJobDescriptionComplete(true)
-                setJobAnalysis({
-                  requiredSkills: analysis.requiredSkills || [],
-                  preferredSkills: analysis.preferredSkills || [],
-                  jobTitle: analysis.jobTitle || "",
-                  companyName: analysis.companyName || "",
-                  keyResponsibilities: analysis.keyResponsibilities || [],
-                  industryContext: analysis.industryContext || "",
-                  seniority: analysis.seniority || "",
-                  companySize: analysis.companySize || "",
-                  techStack: analysis.techStack || [],
-                  softSkills: analysis.softSkills || [],
-                  achievements: analysis.achievements || [],
-                  metrics: analysis.metrics || [],
-                })
-              }}
-            />
+      {/* Job Description Input */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Job Description
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder="Paste the complete job description here..."
+            className="min-h-[200px] resize-none"
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+          />
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {jobDescription ? (
+                <>
+                  <span className="font-medium">{jobDescription.length}</span> characters
+                </>
+              ) : (
+                "Paste a job description to get started"
+              )}
+            </div>
+
+            <Button
+              onClick={handleAnalyzeAndGenerate}
+              disabled={!jobDescription.trim() || isAnalyzing}
+              size="lg"
+              className="min-w-[200px]"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Resume...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  Analyze & Generate Resume
+                </>
+              )}
+            </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="bg-white rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Step 2: Your Resume</h2>
-            <Tabs defaultValue="upload" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="upload">Upload Resume</TabsTrigger>
-                <TabsTrigger value="template">Use Template</TabsTrigger>
-                <TabsTrigger value="perfect">Perfect Resume</TabsTrigger>
-              </TabsList>
-              <TabsContent value="upload" className="mt-0">
-                <ResumeUpload
-                  onComplete={(file) => {
-                    setResumeComplete(true)
-                    setResumeData({ type: "upload", file })
-                  }}
-                />
-              </TabsContent>
-              <TabsContent value="template" className="mt-0">
-                <ResumeTemplates
-                  onComplete={(template) => {
-                    setResumeComplete(true)
-                    setResumeData({ type: "template", data: template.data, templateId: template.id })
-                  }}
-                />
-              </TabsContent>
-              <TabsContent value="perfect" className="mt-0">
-                <PerfectResumeGenerator
-                  jobAnalysis={jobAnalysis}
-                  onComplete={(perfectResume) => {
-                    setResumeComplete(true)
-                    setResumeData({ type: "perfect", data: perfectResume })
-                  }}
-                />
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-2">
+      {/* Status Messages */}
+      {error && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
               <div>
                 <h3 className="font-medium text-red-800">Error</h3>
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          <div className="space-y-6 mt-8">
-            {!generatedResume ? (
-              <div className="flex justify-center">
-                <GenerateButton
-                  disabled={!jobDescriptionComplete || !resumeComplete}
-                  onClick={handleGenerate}
-                  isGenerating={isGenerating}
-                />
+      {success && (
+        <Card className="mb-6 border-green-200 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-green-800">Success</h3>
+                <p className="text-sm text-green-700">{success}</p>
               </div>
-            ) : (
-              <div className="bg-white rounded-lg border shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Your Tailored Resume</h2>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generated Resume */}
+      {generatedResume && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Resume Editor */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit3 className="h-5 w-5" />
+                    {isEditing ? "Edit Resume" : "Generated Resume"}
+                  </CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setGeneratedResume(null)}>
-                      Generate New
+                    {isEditing ? (
+                      <Button onClick={handleSaveChanges} size="sm">
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </Button>
+                    ) : (
+                      <Button onClick={handleEdit} variant="outline" size="sm">
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        Edit Resume
+                      </Button>
+                    )}
+                    <Button onClick={handleDownload} size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download PDF
                     </Button>
-                    <Button size="sm" onClick={handleDownload}>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 border rounded-lg p-6 max-h-[800px] overflow-y-auto">
+                  <div
+                    className={`bg-white shadow-lg w-full max-w-[700px] mx-auto p-8 space-y-6 ${colorScheme === "blue" ? "border-t-4 border-blue-600" : colorScheme === "green" ? "border-t-4 border-green-600" : "border-t-4 border-gray-600"}`}
+                  >
+                    {/* Personal Info */}
+                    <div className="text-center border-b-2 border-gray-200 pb-4">
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <Input
+                            value={editableResume?.personalInfo.name || ""}
+                            onChange={(e) => handleInputChange("name", e.target.value, "personalInfo")}
+                            className="text-2xl font-bold text-center text-gray-800"
+                            placeholder="Your Full Name"
+                          />
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                            <Input
+                              type="email"
+                              value={editableResume?.personalInfo.email || ""}
+                              onChange={(e) => handleInputChange("email", e.target.value, "personalInfo")}
+                              placeholder="your.email@example.com"
+                            />
+                            <Input
+                              type="tel"
+                              value={editableResume?.personalInfo.phone || ""}
+                              onChange={(e) => handleInputChange("phone", e.target.value, "personalInfo")}
+                              placeholder="(555) 123-4567"
+                            />
+                            <Input
+                              value={editableResume?.personalInfo.location || ""}
+                              onChange={(e) => handleInputChange("location", e.target.value, "personalInfo")}
+                              placeholder="City, State"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <h1 className="text-2xl font-bold text-gray-800 mb-2">{generatedResume.personalInfo.name}</h1>
+                          <div className="text-sm text-gray-600">
+                            {generatedResume.personalInfo.email} | {generatedResume.personalInfo.phone} |{" "}
+                            {generatedResume.personalInfo.location}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Professional Summary */}
+                    <div>
+                      <h2
+                        className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
+                      >
+                        PROFESSIONAL SUMMARY
+                      </h2>
+                      {isEditing ? (
+                        <Textarea
+                          value={editableResume?.summary || ""}
+                          onChange={(e) => handleInputChange("summary", e.target.value)}
+                          className="min-h-[100px]"
+                          placeholder="Write a compelling professional summary..."
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-700 leading-relaxed">{generatedResume.summary}</p>
+                      )}
+                    </div>
+
+                    {/* Skills */}
+                    <div>
+                      <h2
+                        className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
+                      >
+                        CORE COMPETENCIES
+                      </h2>
+                      {isEditing ? (
+                        <Textarea
+                          value={editableResume?.skills.join(", ") || ""}
+                          onChange={(e) => handleInputChange("skills", e.target.value)}
+                          placeholder="Separate skills with commas (e.g., JavaScript, React, Node.js)"
+                          className="min-h-[80px]"
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {generatedResume.skills.map((skill, index) => (
+                            <span
+                              key={index}
+                              className={`px-3 py-1 ${colorScheme === "blue" ? "bg-blue-100 text-blue-800" : colorScheme === "green" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"} text-sm rounded border`}
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Experience */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h2
+                          className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1`}
+                        >
+                          PROFESSIONAL EXPERIENCE
+                        </h2>
+                        {isEditing && (
+                          <Button onClick={addExperience} size="sm" variant="outline">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Experience
+                          </Button>
+                        )}
+                      </div>
+
+                      {(isEditing ? editableResume?.experience : generatedResume.experience)?.map((exp, index) => (
+                        <div key={index} className="mb-6 relative">
+                          {isEditing && (
+                            <Button
+                              onClick={() => removeExperience(index)}
+                              size="sm"
+                              variant="ghost"
+                              className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {isEditing ? (
+                            <div className="space-y-3 border rounded p-4 bg-gray-50">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Input
+                                  value={exp.title}
+                                  onChange={(e) => handleInputChange("title", e.target.value, "experience", index)}
+                                  placeholder="Job Title"
+                                  className="font-semibold"
+                                />
+                                <Input
+                                  value={exp.duration}
+                                  onChange={(e) => handleInputChange("duration", e.target.value, "experience", index)}
+                                  placeholder="Start Date - End Date"
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Input
+                                  value={exp.company}
+                                  onChange={(e) => handleInputChange("company", e.target.value, "experience", index)}
+                                  placeholder="Company Name"
+                                />
+                                <Input
+                                  value={exp.location}
+                                  onChange={(e) => handleInputChange("location", e.target.value, "experience", index)}
+                                  placeholder="City, State"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-sm font-medium">Key Achievements</label>
+                                  <Button onClick={() => addAchievement(index)} size="sm" variant="outline">
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add
+                                  </Button>
+                                </div>
+                                {exp.achievements.map((achievement, achIndex) => (
+                                  <div key={achIndex} className="flex gap-2">
+                                    <Textarea
+                                      value={achievement}
+                                      onChange={(e) =>
+                                        handleInputChange(
+                                          achIndex.toString(),
+                                          e.target.value,
+                                          "experience",
+                                          index,
+                                          "achievements",
+                                        )
+                                      }
+                                      className="min-h-[60px] flex-1"
+                                      placeholder="Describe a key achievement or responsibility..."
+                                    />
+                                    <Button
+                                      onClick={() => removeAchievement(index, achIndex)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-500 hover:text-red-700 self-start mt-2"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex justify-between items-start mb-1">
+                                <h3 className="font-semibold text-gray-800">{exp.title}</h3>
+                                <span className="text-sm text-gray-600 whitespace-nowrap ml-4">{exp.duration}</span>
+                              </div>
+                              <p className="text-sm font-medium text-gray-600 mb-2 italic">
+                                {exp.company} | {exp.location}
+                              </p>
+                              <ul className="text-sm list-disc list-inside space-y-1 text-gray-700">
+                                {exp.achievements.map((achievement, achIndex) => (
+                                  <li key={achIndex}>{achievement}</li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Education */}
+                    <div>
+                      <h2
+                        className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
+                      >
+                        EDUCATION
+                      </h2>
+                      {(isEditing ? editableResume?.education : generatedResume.education)?.map((edu, index) => (
+                        <div key={index} className="mb-3">
+                          {isEditing ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded p-3 bg-gray-50">
+                              <Input
+                                value={edu.degree}
+                                onChange={(e) => handleInputChange("degree", e.target.value, "education", index)}
+                                placeholder="Degree Name"
+                                className="font-semibold"
+                              />
+                              <Input
+                                value={edu.year}
+                                onChange={(e) => handleInputChange("year", e.target.value, "education", index)}
+                                placeholder="Graduation Year"
+                              />
+                              <Input
+                                value={edu.institution}
+                                onChange={(e) => handleInputChange("institution", e.target.value, "education", index)}
+                                placeholder="Institution Name"
+                              />
+                              <Input
+                                value={edu.location}
+                                onChange={(e) => handleInputChange("location", e.target.value, "education", index)}
+                                placeholder="City, State"
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex justify-between items-start">
+                                <h3 className="font-semibold text-gray-800">{edu.degree}</h3>
+                                <span className="text-sm text-gray-600 whitespace-nowrap ml-4">{edu.year}</span>
+                              </div>
+                              <p className="text-sm text-gray-600 italic">
+                                {edu.institution} | {edu.location}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Customization Panel */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Customize
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Template Selection */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Template</label>
+                  <Select value={resumeTemplate} onValueChange={setResumeTemplate}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="modern">Modern</SelectItem>
+                      <SelectItem value="minimal">Minimal</SelectItem>
+                      <SelectItem value="executive">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Color Scheme */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Color Scheme</label>
+                  <Select value={colorScheme} onValueChange={setColorScheme}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="blue">Blue</SelectItem>
+                      <SelectItem value="green">Green</SelectItem>
+                      <SelectItem value="gray">Gray</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium">Quick Actions</h3>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handleEdit}
+                      disabled={isEditing}
+                    >
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      Edit Content
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handleSaveChanges}
+                      disabled={!isEditing}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleDownload}>
                       <Download className="mr-2 h-4 w-4" />
                       Download PDF
                     </Button>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border rounded-lg p-6 max-h-[600px] overflow-y-auto">
-                  <div className="bg-white shadow-md w-full max-w-[700px] mx-auto p-8">
-                    <div className="text-center border-b-2 border-blue-600 pb-4 mb-6">
-                      <h1 className="text-2xl font-bold text-blue-800 mb-2">{generatedResume.personalInfo.name}</h1>
-                      <div className="text-sm text-gray-600">
-                        {generatedResume.personalInfo.email} | {generatedResume.personalInfo.phone} |{" "}
-                        {generatedResume.personalInfo.location}
-                      </div>
-                    </div>
-
-                    <div className="mb-6">
-                      <h2 className="text-lg font-semibold text-blue-800 border-b border-gray-300 pb-1 mb-3">
-                        PROFESSIONAL SUMMARY
-                      </h2>
-                      <p className="text-sm italic text-gray-700 leading-relaxed">{generatedResume.summary}</p>
-                    </div>
-
-                    <div className="mb-6">
-                      <h2 className="text-lg font-semibold text-blue-800 border-b border-gray-300 pb-1 mb-3">SKILLS</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {generatedResume.skills.map((skill, index) => (
-                          <span key={index} className="px-3 py-1 bg-gray-100 text-sm rounded border">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mb-6">
-                      <h2 className="text-lg font-semibold text-blue-800 border-b border-gray-300 pb-1 mb-3">
-                        EXPERIENCE
-                      </h2>
-                      {generatedResume.experience.map((exp, index) => (
-                        <div key={index} className="mb-4">
-                          <div className="flex justify-between items-start mb-1">
-                            <h3 className="font-semibold">{exp.title}</h3>
-                            <span className="text-sm text-gray-600">{exp.duration}</span>
-                          </div>
-                          <p className="text-sm italic text-gray-600 mb-2">
-                            {exp.company} | {exp.location}
-                          </p>
-                          <ul className="text-sm list-disc list-inside space-y-1">
-                            {exp.achievements.map((achievement, achIndex) => (
-                              <li key={achIndex}>{achievement}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div>
-                      <h2 className="text-lg font-semibold text-blue-800 border-b border-gray-300 pb-1 mb-3">
-                        EDUCATION
-                      </h2>
-                      {generatedResume.education.map((edu, index) => (
-                        <div key={index} className="mb-2">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-semibold">{edu.degree}</h3>
-                            <span className="text-sm text-gray-600">{edu.year}</span>
-                          </div>
-                          <p className="text-sm italic text-gray-600">
-                            {edu.institution} | {edu.location}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Tips */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">💡 Pro Tips</h3>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• Use action verbs to start bullet points</li>
+                    <li>• Include quantifiable achievements</li>
+                    <li>• Tailor skills to match job requirements</li>
+                    <li>• Keep descriptions concise and impactful</li>
+                  </ul>
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg border shadow-sm p-6 h-fit">
-          <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-8 w-8 rounded-full ${jobDescriptionComplete ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} flex items-center justify-center text-sm font-medium`}
-              >
-                1
-              </div>
-              <div>
-                <p className={`font-medium ${jobDescriptionComplete ? "" : "text-gray-500"}`}>Job Description</p>
-                <p className="text-sm text-gray-500">Paste the job description</p>
-              </div>
-            </div>
-            <div className="w-0.5 h-6 bg-gray-200 ml-4"></div>
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-8 w-8 rounded-full ${resumeComplete ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} flex items-center justify-center text-sm font-medium`}
-              >
-                2
-              </div>
-              <div>
-                <p className={`font-medium ${resumeComplete ? "" : "text-gray-500"}`}>Resume</p>
-                <p className="text-sm text-gray-500">Upload or create your resume</p>
-              </div>
-            </div>
-            <div className="w-0.5 h-6 bg-gray-200 ml-4"></div>
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-8 w-8 rounded-full ${generatedResume ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} flex items-center justify-center text-sm font-medium`}
-              >
-                3
-              </div>
-              <div>
-                <p className={`font-medium ${generatedResume ? "" : "text-gray-500"}`}>Generate</p>
-                <p className="text-sm text-gray-500">Create tailored documents</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-dashed">
-            <h3 className="font-medium mb-2">Enhanced AI Resume Generation</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Our advanced AI creates unique, quantifiable bullet points tailored to each job description, ensuring
-              maximum impact and ATS optimization.
-            </p>
-            <button className="text-sm text-primary font-medium hover:underline">Learn More</button>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -22,7 +22,30 @@ export interface TailoredResume {
   }>
 }
 
-export function generateResumeHTML(resume: TailoredResume): string {
+export function generateResumeHTML(resume: TailoredResume, template = "professional", colorScheme = "blue"): string {
+  const colors = {
+    blue: {
+      primary: "#1e40af",
+      secondary: "#2563eb",
+      accent: "#3b82f6",
+      light: "#eff6ff",
+    },
+    green: {
+      primary: "#166534",
+      secondary: "#16a34a",
+      accent: "#22c55e",
+      light: "#f0fdf4",
+    },
+    gray: {
+      primary: "#374151",
+      secondary: "#4b5563",
+      accent: "#6b7280",
+      light: "#f9fafb",
+    },
+  }
+
+  const currentColors = colors[colorScheme as keyof typeof colors] || colors.blue
+
   return `
     <div class="resume-container">
       <!-- Header Section -->
@@ -93,12 +116,21 @@ export function generateResumeHTML(resume: TailoredResume): string {
           )
           .join("")}
       </div>
+
+      <style>
+        :root {
+          --primary-color: ${currentColors.primary};
+          --secondary-color: ${currentColors.secondary};
+          --accent-color: ${currentColors.accent};
+          --light-color: ${currentColors.light};
+        }
+      </style>
     </div>
   `
 }
 
-export async function downloadResumeAsPDF(resume: TailoredResume) {
-  const htmlContent = generateResumeHTML(resume)
+export async function downloadResumeAsPDF(resume: TailoredResume, template = "professional", colorScheme = "blue") {
+  const htmlContent = generateResumeHTML(resume, template, colorScheme)
   const printWindow = window.open("", "_blank")
 
   if (!printWindow) {
@@ -162,13 +194,13 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
           text-align: center;
           margin-bottom: 30px;
           padding-bottom: 20px;
-          border-bottom: 2px solid #2563eb;
+          border-bottom: 3px solid var(--secondary-color);
         }
 
         .name {
           font-size: 28pt;
           font-weight: 700;
-          color: #1e40af;
+          color: var(--primary-color);
           margin-bottom: 8px;
           letter-spacing: -0.5px;
         }
@@ -196,12 +228,12 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
         .section-title {
           font-size: 12pt;
           font-weight: 600;
-          color: #1e40af;
+          color: var(--primary-color);
           text-transform: uppercase;
           letter-spacing: 1px;
           margin-bottom: 12px;
           padding-bottom: 4px;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--accent-color);
         }
 
         /* Summary Styles */
@@ -222,13 +254,13 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
         }
 
         .skill-item {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--light-color);
+          border: 1px solid var(--accent-color);
           padding: 4px 12px;
           border-radius: 4px;
           font-size: 9pt;
           font-weight: 500;
-          color: #475569;
+          color: var(--primary-color);
           display: inline-block;
         }
 
@@ -291,7 +323,7 @@ export async function downloadResumeAsPDF(resume: TailoredResume) {
           content: "▸";
           position: absolute;
           left: 0;
-          color: #2563eb;
+          color: var(--secondary-color);
           font-weight: bold;
         }
 
