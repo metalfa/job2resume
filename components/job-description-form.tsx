@@ -6,7 +6,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import { saveJobDescription } from "@/app/actions/job-description"
 
-export function JobDescriptionForm() {
+interface JobDescriptionFormProps {
+  onAnalysisComplete?: (analysis: any) => void
+}
+
+export function JobDescriptionForm({ onAnalysisComplete }: JobDescriptionFormProps) {
   const [jobDescription, setJobDescription] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [keywordsDetected, setKeywordsDetected] = useState<string[]>([])
@@ -35,6 +39,10 @@ export function JobDescriptionForm() {
         setKeywordsDetected([...requiredSkills, ...preferredSkills])
         setJobTitle(result.analysis.jobTitle || null)
         setCompanyName(result.analysis.companyName || null)
+
+        if (onAnalysisComplete) {
+          onAnalysisComplete(result.analysis)
+        }
       }
     } catch (error) {
       console.error("Error analyzing job description:", error)

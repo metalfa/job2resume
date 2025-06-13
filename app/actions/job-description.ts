@@ -10,11 +10,9 @@ export async function saveJobDescription(formData: FormData) {
       return { error: "Job description is required" }
     }
 
-    // Analyze the job description using OpenAI
+    // Analyze the job description using enhanced OpenAI analysis
     const analysis = await analyzeJobDescription(description)
 
-    // In a real application, you would save this to a database
-    // For now, we'll just return the analysis
     return {
       success: true,
       analysis,
@@ -22,7 +20,6 @@ export async function saveJobDescription(formData: FormData) {
   } catch (error) {
     console.error("Error in saveJobDescription:", error)
 
-    // Provide more specific error messages based on the error type
     if (error instanceof Error) {
       if (error.message.includes("JSON")) {
         return { error: "Failed to process the job description. Please try again or use a different job description." }
