@@ -50,12 +50,12 @@ export function PerfectResumeGenerator({ jobAnalysis, onComplete }: PerfectResum
     setTimeout(() => {
       const perfectResume: PerfectResumeData = {
         personalInfo: {
-          name: "Alex Johnson",
-          email: "alex.johnson@email.com",
-          phone: "(555) 123-4567",
-          location: "San Francisco, CA",
+          name: "Faycal Ben Sassi",
+          email: "bensassi.faysel@gmail.com",
+          phone: "(773) 837-3043",
+          location: "Chicago, IL",
         },
-        summary: `Highly skilled ${jobAnalysis.jobTitle.toLowerCase()} with 5+ years of experience in ${jobAnalysis.requiredSkills.slice(0, 3).join(", ")}. Proven track record of delivering exceptional results at ${jobAnalysis.companyName || "leading technology companies"}. Expertise in ${jobAnalysis.preferredSkills.slice(0, 2).join(" and ")} with a passion for innovation and continuous learning.`,
+        summary: `Highly skilled ${jobAnalysis.jobTitle.toLowerCase()} with 7+ years of experience in ${jobAnalysis.requiredSkills.slice(0, 3).join(", ")}. Proven track record of delivering exceptional results at ${jobAnalysis.companyName || "leading technology companies"}. Expertise in ${jobAnalysis.preferredSkills.slice(0, 2).join(" and ")} with a passion for innovation and continuous learning.`,
         skills: [...jobAnalysis.requiredSkills, ...jobAnalysis.preferredSkills].slice(0, 12),
         experience: [
           {
