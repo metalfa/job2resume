@@ -49,7 +49,9 @@ export async function analyzeJobDescription(description: string) {
     `
 
     const { text } = await generateText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o", {
+        apiKey: process.env.OPENAI_API_KEY,
+      }),
       prompt: prompt,
       temperature: 0.3, // Lower temperature for more consistent analysis
     })
