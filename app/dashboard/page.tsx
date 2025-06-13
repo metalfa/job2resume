@@ -147,7 +147,7 @@ export default function DashboardPage() {
                     </Button>
                     <Button size="sm" onClick={handleDownload}>
                       <Download className="mr-2 h-4 w-4" />
-                      Download HTML
+                      Download PDF
                     </Button>
                   </div>
                 </div>

@@ -163,21 +163,128 @@ export function generateResumeHTML(resume: TailoredResume): string {
   `
 }
 
-export function downloadResumeAsPDF(resume: TailoredResume) {
+export async function downloadResumeAsPDF(resume: TailoredResume) {
+  // We'll use the browser's print functionality to generate a PDF
+  // First, create a new window with the resume HTML
   const htmlContent = generateResumeHTML(resume)
+  const printWindow = window.open("", "_blank")
 
-  // Create a blob with the HTML content
-  const blob = new Blob([htmlContent], { type: "text/html" })
-  const url = URL.createObjectURL(blob)
+  if (!printWindow) {
+    alert("Please allow pop-ups to download your resume as PDF")
+    return
+  }
 
-  // Create download link
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `${resume.personalInfo.name.replace(/\s+/g, "_")}_Tailored_Resume.html`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${resume.personalInfo.name} - Resume</title>
+      <style>
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          @page {
+            size: letter;
+            margin: 0.5in;
+          }
+        }
+        body {
+          font-family: 'Arial', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 8.5in;
+          margin: 0 auto;
+          padding: 0.5in;
+          background: white;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 2px solid #2563eb;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .name {
+          font-size: 28px;
+          font-weight: bold;
+          color: #1e40af;
+          margin-bottom: 10px;
+        }
+        .contact-info {
+          font-size: 14px;
+          color: #666;
+        }
+        .section {
+          margin-bottom: 25px;
+        }
+        .section-title {
+          font-size: 18px;
+          font-weight: bold;
+          color: #1e40af;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 5px;
+          margin-bottom: 15px;
+          text-transform: uppercase;
+        }
+        .experience-item, .education-item {
+          margin-bottom: 20px;
+        }
+        .job-title {
+          font-weight: bold;
+          font-size: 16px;
+        }
+        .company {
+          font-style: italic;
+          color: #666;
+        }
+        .duration {
+          float: right;
+          color: #666;
+          font-size: 14px;
+        }
+        .achievements {
+          margin-top: 8px;
+        }
+        .achievements li {
+          margin-bottom: 4px;
+        }
+        .skills-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .skill-tag {
+          background: #f3f4f6;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 14px;
+          border: 1px solid #d1d5db;
+        }
+        .summary {
+          font-style: italic;
+          line-height: 1.7;
+          color: #374151;
+        }
+      </style>
+    </head>
+    <body>
+      ${htmlContent}
+      <script>
+        // Automatically trigger print dialog when the content is loaded
+        window.onload = function() {
+          setTimeout(() => {
+            window.print();
+            // Close the window after printing (or if print is canceled)
+            setTimeout(() => {
+              window.close();
+            }, 500);
+          }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `)
 
-  // Clean up
-  URL.revokeObjectURL(url)
+  printWindow.document.close()
 }
