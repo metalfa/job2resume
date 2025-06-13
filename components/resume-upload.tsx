@@ -153,7 +153,15 @@ export function ResumeUpload({ onComplete }: ResumeUploadProps) {
           <p className="text-sm text-gray-500 mb-4">
             Your resume has been uploaded successfully. You can proceed to the next step.
           </p>
-          <Button onClick={() => onComplete && onComplete(file)}>Continue</Button>
+          <Button
+            onClick={() => {
+              if (file && onComplete) {
+                onComplete(file)
+              }
+            }}
+          >
+            Continue
+          </Button>
         </div>
       )}
     </div>

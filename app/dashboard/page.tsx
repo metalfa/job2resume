@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobDescriptionForm } from "@/components/job-description-form"
 import { ResumeUpload } from "@/components/resume-upload"
@@ -5,6 +8,10 @@ import { ResumeTemplates } from "@/components/resume-templates"
 import { GenerateButton } from "@/components/generate-button"
 
 export default function DashboardPage() {
+  const [jobDescriptionComplete, setJobDescriptionComplete] = useState(false)
+  const [resumeComplete, setResumeComplete] = useState(false)
+  const [resumeData, setResumeData] = useState<any>(null)
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <h1 className="text-3xl font-bold mb-8">Create Your Tailored Resume</h1>
@@ -13,7 +20,11 @@ export default function DashboardPage() {
         <div className="md:col-span-2 space-y-8">
           <div className="bg-white rounded-lg border shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Step 1: Paste Job Description</h2>
-            <JobDescriptionForm />
+            <JobDescriptionForm
+              onAnalysisComplete={(analysis) => {
+                setJobDescriptionComplete(true)
+              }}
+            />
           </div>
 
           <div className="bg-white rounded-lg border shadow-sm p-6">
@@ -26,38 +37,16 @@ export default function DashboardPage() {
               <TabsContent value="upload" className="mt-0">
                 <ResumeUpload
                   onComplete={(file) => {
-                    // Here you would typically process the uploaded file
-                    // For now, we'll just update the UI to show completion
-                    const progressElement = document.querySelector('[data-step="resume"]')
-                    if (progressElement) {
-                      progressElement.classList.remove("bg-gray-200", "text-gray-500")
-                      progressElement.classList.add("bg-primary", "text-white")
-                    }
-
-                    // Enable the generate button
-                    const generateButton = document.querySelector("[data-generate-button]")
-                    if (generateButton) {
-                      generateButton.removeAttribute("disabled")
-                    }
+                    setResumeComplete(true)
+                    setResumeData({ type: "upload", file })
                   }}
                 />
               </TabsContent>
               <TabsContent value="template" className="mt-0">
                 <ResumeTemplates
                   onComplete={(template) => {
-                    // Here you would typically save the selected template
-                    // For now, we'll just update the UI to show completion
-                    const progressElement = document.querySelector('[data-step="resume"]')
-                    if (progressElement) {
-                      progressElement.classList.remove("bg-gray-200", "text-gray-500")
-                      progressElement.classList.add("bg-primary", "text-white")
-                    }
-
-                    // Enable the generate button
-                    const generateButton = document.querySelector("[data-generate-button]")
-                    if (generateButton) {
-                      generateButton.removeAttribute("disabled")
-                    }
+                    setResumeComplete(true)
+                    setResumeData({ type: "template", ...template })
                   }}
                 />
               </TabsContent>
@@ -65,7 +54,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex justify-center mt-8">
-            <GenerateButton data-generate-button disabled={true} />
+            <GenerateButton disabled={!jobDescriptionComplete || !resumeComplete} />
           </div>
         </div>
 
@@ -73,24 +62,25 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+              <div
+                className={`h-8 w-8 rounded-full ${jobDescriptionComplete ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} flex items-center justify-center text-sm font-medium`}
+              >
                 1
               </div>
               <div>
-                <p className="font-medium">Job Description</p>
+                <p className={`font-medium ${jobDescriptionComplete ? "" : "text-gray-500"}`}>Job Description</p>
                 <p className="text-sm text-gray-500">Paste the job description</p>
               </div>
             </div>
             <div className="w-0.5 h-6 bg-gray-200 ml-4"></div>
             <div className="flex items-center gap-2">
               <div
-                data-step="resume"
-                className="h-8 w-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-medium"
+                className={`h-8 w-8 rounded-full ${resumeComplete ? "bg-primary text-white" : "bg-gray-200 text-gray-500"} flex items-center justify-center text-sm font-medium`}
               >
                 2
               </div>
               <div>
-                <p className="font-medium text-gray-500">Resume</p>
+                <p className={`font-medium ${resumeComplete ? "" : "text-gray-500"}`}>Resume</p>
                 <p className="text-sm text-gray-500">Upload or create your resume</p>
               </div>
             </div>
