@@ -150,7 +150,7 @@ export async function generateTailoredResume(jobAnalysis: JobAnalysis, resumeDat
       "experience": [
         {
           "title": "Job Title",
-          "company": "Company Name",
+          "company": "GlobalTech Solutions",
           "location": "City, State",
           "duration": "Start Date - End Date",
           "achievements": [
@@ -165,7 +165,7 @@ export async function generateTailoredResume(jobAnalysis: JobAnalysis, resumeDat
         {
           "degree": "Degree Name",
           "institution": "Polytechnique",
-          "location": "City, State",
+          "location": "Tunis, Tunisia",
           "year": "Graduation Year"
         }
       ]
