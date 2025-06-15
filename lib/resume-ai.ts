@@ -164,7 +164,7 @@ export async function generateTailoredResume(jobAnalysis: JobAnalysis, resumeDat
       "education": [
         {
           "degree": "Degree Name",
-          "institution": "Institution Name",
+          "institution": "Polytechnique",
           "location": "City, State",
           "year": "Graduation Year"
         }
