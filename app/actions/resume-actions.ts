@@ -25,10 +25,10 @@ export async function generateResumeAction(jobAnalysis: JobAnalysis) {
       type: "perfect" as const,
       data: {
         personalInfo: {
-          name: "Your Name",
-          email: "your.email@example.com",
-          phone: "(555) 123-4567",
-          location: "Your City, State",
+          name: "Faycal Ben Sassi",
+          email: "bensassi.faysel@gmail.com",
+          phone: "(773) 837-3043",
+          location: "Chicago, Illinois",
         },
         summary: "Professional summary will be generated based on the job description",
         skills: [],
