@@ -18,9 +18,10 @@ import {
   CheckCircle,
   FileText,
   Palette,
+  Printer,
 } from "lucide-react"
 import { analyzeJobDescriptionAction, generateResumeAction } from "@/app/actions/resume-actions"
-import { downloadResumeAsPDF, type TailoredResume } from "@/lib/pdf-generator"
+import { downloadResumeAsDirectPDF, printResumeDocument, type TailoredResume } from "@/lib/pdf-generator" // Updated imports
 
 export default function DashboardPage() {
   const [jobDescription, setJobDescription] = useState("")
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [resumeTemplate, setResumeTemplate] = useState("professional")
   const [colorScheme, setColorScheme] = useState("blue")
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const handleAnalyzeAndGenerate = async () => {
     if (!jobDescription.trim()) {
@@ -44,29 +46,31 @@ export default function DashboardPage() {
     setSuccess(null)
 
     try {
-      // Step 1: Analyze job description using server action
       const analysisResult = await analyzeJobDescriptionAction(jobDescription)
 
       if (analysisResult.error) {
         setError(analysisResult.error)
+        setIsAnalyzing(false)
         return
       }
 
       if (!analysisResult.success || !analysisResult.data) {
         setError("Failed to analyze job description")
+        setIsAnalyzing(false)
         return
       }
 
-      // Step 2: Generate tailored resume using server action
       const resumeResult = await generateResumeAction(analysisResult.data)
 
       if (resumeResult.error) {
         setError(resumeResult.error)
+        setIsAnalyzing(false)
         return
       }
 
       if (!resumeResult.success || !resumeResult.data) {
         setError("Failed to generate resume")
+        setIsAnalyzing(false)
         return
       }
 
@@ -94,10 +98,26 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDownload = () => {
+  const handleDownloadPDF = async () => {
     if (generatedResume) {
-      downloadResumeAsPDF(generatedResume, resumeTemplate, colorScheme)
-      setSuccess("Resume downloaded successfully!")
+      setIsDownloading(true)
+      setSuccess(null)
+      setError(null)
+      try {
+        await downloadResumeAsDirectPDF(generatedResume, resumeTemplate, colorScheme)
+        setSuccess("Resume downloaded successfully!")
+      } catch (e) {
+        setError("Failed to download PDF. Please try printing or try again later.")
+      } finally {
+        setIsDownloading(false)
+      }
+    }
+  }
+
+  const handlePrint = () => {
+    if (generatedResume) {
+      printResumeDocument(generatedResume, resumeTemplate, colorScheme)
+      setSuccess("Print dialog initiated. Please select your printer and settings.")
     }
   }
 
@@ -289,19 +309,27 @@ export default function DashboardPage() {
                   </CardTitle>
                   <div className="flex gap-2">
                     {isEditing ? (
-                      <Button onClick={handleSaveChanges} size="sm">
+                      <Button onClick={handleSaveChanges} size="sm" disabled={isDownloading}>
                         <Save className="mr-2 h-4 w-4" />
                         Save Changes
                       </Button>
                     ) : (
-                      <Button onClick={handleEdit} variant="outline" size="sm">
+                      <Button onClick={handleEdit} variant="outline" size="sm" disabled={isDownloading}>
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit Resume
                       </Button>
                     )}
-                    <Button onClick={handleDownload} size="sm">
-                      <Download className="mr-2 h-4 w-4" />
+                    <Button onClick={handleDownloadPDF} size="sm" disabled={isDownloading}>
+                      {isDownloading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-4 w-4" />
+                      )}
                       Download PDF
+                    </Button>
+                    <Button onClick={handlePrint} size="sm" variant="outline" disabled={isDownloading}>
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print Resume
                     </Button>
                   </div>
                 </div>
@@ -309,6 +337,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="bg-gray-50 border rounded-lg p-6 max-h-[800px] overflow-y-auto">
                   <div
+                    id="resume-preview-content" // Added ID for html2canvas
                     className={`bg-white shadow-lg w-full max-w-[700px] mx-auto p-8 space-y-6 ${colorScheme === "blue" ? "border-t-4 border-blue-600" : colorScheme === "green" ? "border-t-4 border-green-600" : "border-t-4 border-gray-600"}`}
                   >
                     {/* Personal Info */}
@@ -578,7 +607,7 @@ export default function DashboardPage() {
                 {/* Template Selection */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Template</label>
-                  <Select value={resumeTemplate} onValueChange={setResumeTemplate}>
+                  <Select value={resumeTemplate} onValueChange={setResumeTemplate} disabled={isDownloading}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -594,7 +623,7 @@ export default function DashboardPage() {
                 {/* Color Scheme */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Color Scheme</label>
-                  <Select value={colorScheme} onValueChange={setColorScheme}>
+                  <Select value={colorScheme} onValueChange={setColorScheme} disabled={isDownloading}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -615,7 +644,7 @@ export default function DashboardPage() {
                       size="sm"
                       className="w-full justify-start"
                       onClick={handleEdit}
-                      disabled={isEditing}
+                      disabled={isEditing || isDownloading}
                     >
                       <Edit3 className="mr-2 h-4 w-4" />
                       Edit Content
@@ -625,14 +654,34 @@ export default function DashboardPage() {
                       size="sm"
                       className="w-full justify-start"
                       onClick={handleSaveChanges}
-                      disabled={!isEditing}
+                      disabled={!isEditing || isDownloading}
                     >
                       <Save className="mr-2 h-4 w-4" />
                       Save Changes
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleDownload}>
-                      <Download className="mr-2 h-4 w-4" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handleDownloadPDF}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-4 w-4" />
+                      )}
                       Download PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={handlePrint}
+                      disabled={isDownloading}
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print Resume
                     </Button>
                   </div>
                 </div>
