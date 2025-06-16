@@ -63,7 +63,7 @@ export function generateResumeHTML(resume: TailoredResume, template = "professio
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid var(--secondary-color); }
-        .name { font-size: 228pt; font-weight: 700; color: var(--primary-color); margin-bottom: 8px; letter-spacing: -0.5px; }
+        .name { font-size: 28pt; font-weight: 700; color: var(--primary-color); margin-bottom: 8px; letter-spacing: -0.5px; }
         .contact-info { font-size: 10pt; color: #4b5563; font-weight: 400; }
         .contact-item { display: inline; }
         .contact-separator { margin: 0 8px; color: #9ca3af; }
