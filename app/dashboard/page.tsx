@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react" // Added useEffect
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Added Tabs
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Loader2,
   Wand2,
@@ -27,18 +27,23 @@ import {
   analyzeJobDescriptionAction,
   generateResumeAction,
   generateCoverLetterAction,
-} from "@/app/actions/resume-actions" // Added generateCoverLetterAction
-import { downloadResumeAsDirectPDF, printResumeDocument, type TailoredResume } from "@/lib/pdf-generator"
-import type { JobAnalysis } from "@/lib/resume-ai" // Imported JobAnalysis type
+} from "@/app/actions/resume-actions"
+import {
+  downloadResumeAsDirectPDF,
+  printResumeDocument,
+  downloadCoverLetterAsPDF, // Added new import
+  type TailoredResume,
+} from "@/lib/pdf-generator"
+import type { JobAnalysis } from "@/lib/resume-ai"
 
 export default function DashboardPage() {
   const [jobDescription, setJobDescription] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  const [jobAnalysisData, setJobAnalysisData] = useState<JobAnalysis | null>(null) // Added state for jobAnalysisData
+  const [jobAnalysisData, setJobAnalysisData] = useState<JobAnalysis | null>(null)
 
   const [generatedResume, setGeneratedResume] = useState<TailoredResume | null>(null)
-  const [isEditingResume, setIsEditingResume] = useState(false) // Renamed for clarity
+  const [isEditingResume, setIsEditingResume] = useState(false)
   const [editableResume, setEditableResume] = useState<TailoredResume | null>(null)
 
   const [generatedCoverLetter, setGeneratedCoverLetter] = useState<string | null>(null)
@@ -47,12 +52,13 @@ export default function DashboardPage() {
   const [editableCoverLetter, setEditableCoverLetter] = useState<string | null>(null)
   const [coverLetterError, setCoverLetterError] = useState<string | null>(null)
   const [coverLetterSuccess, setCoverLetterSuccess] = useState<string | null>(null)
+  const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false) // New state
 
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [resumeTemplate, setResumeTemplate] = useState("professional")
   const [colorScheme, setColorScheme] = useState("blue")
-  const [isDownloading, setIsDownloading] = useState(false)
+  const [isDownloadingResume, setIsDownloadingResume] = useState(false) // Renamed for clarity
   const [activeTab, setActiveTab] = useState("resume")
 
   const handleAnalyzeAndGenerate = async () => {
@@ -64,9 +70,9 @@ export default function DashboardPage() {
     setIsAnalyzing(true)
     setError(null)
     setSuccess(null)
-    setJobAnalysisData(null) // Reset job analysis data
-    setGeneratedResume(null) // Reset resume
-    setGeneratedCoverLetter(null) // Reset cover letter
+    setJobAnalysisData(null)
+    setGeneratedResume(null)
+    setGeneratedCoverLetter(null)
     setCoverLetterError(null)
     setCoverLetterSuccess(null)
 
@@ -79,7 +85,7 @@ export default function DashboardPage() {
         return
       }
 
-      setJobAnalysisData(analysisResult.data) // Store job analysis data
+      setJobAnalysisData(analysisResult.data)
 
       const resumeResult = await generateResumeAction(analysisResult.data)
 
@@ -90,9 +96,9 @@ export default function DashboardPage() {
       }
 
       setGeneratedResume(resumeResult.data)
-      setEditableResume(JSON.parse(JSON.stringify(resumeResult.data))) // Deep copy for editing
+      setEditableResume(JSON.parse(JSON.stringify(resumeResult.data)))
       setSuccess("Resume generated successfully! You can now edit and customize it.")
-      setActiveTab("resume") // Switch to resume tab
+      setActiveTab("resume")
     } catch (error) {
       console.error("Error generating resume:", error)
       setError("An unexpected error occurred. Please try again.")
@@ -129,15 +135,13 @@ export default function DashboardPage() {
   }
 
   const handleEditResume = () => {
-    // Renamed for clarity
     setIsEditingResume(true)
     setSuccess(null)
   }
 
   const handleSaveResumeChanges = () => {
-    // Renamed for clarity
     if (editableResume) {
-      setGeneratedResume(JSON.parse(JSON.stringify(editableResume))) // Deep copy
+      setGeneratedResume(JSON.parse(JSON.stringify(editableResume)))
       setIsEditingResume(false)
       setSuccess("Resume changes saved successfully!")
     }
@@ -165,9 +169,10 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadResumePDF = async () => {
+    // Renamed for clarity
     if (generatedResume) {
-      setIsDownloading(true)
+      setIsDownloadingResume(true)
       setSuccess(null)
       setError(null)
       try {
@@ -176,8 +181,26 @@ export default function DashboardPage() {
       } catch (e) {
         setError("Failed to download PDF. Please try printing or try again later.")
       } finally {
-        setIsDownloading(false)
+        setIsDownloadingResume(false)
       }
+    }
+  }
+
+  const handleDownloadCoverLetterPDF = async () => {
+    if (generatedCoverLetter && generatedResume) {
+      setIsDownloadingCoverLetter(true)
+      setCoverLetterSuccess(null)
+      setCoverLetterError(null)
+      try {
+        await downloadCoverLetterAsPDF(generatedCoverLetter, generatedResume.personalInfo.name)
+        setCoverLetterSuccess("Cover letter PDF downloaded successfully!")
+      } catch (e) {
+        setCoverLetterError("Failed to download Cover Letter PDF. Please try again.")
+      } finally {
+        setIsDownloadingCoverLetter(false)
+      }
+    } else {
+      setCoverLetterError("Cannot download: Cover letter or resume data is missing.")
     }
   }
 
@@ -195,12 +218,11 @@ export default function DashboardPage() {
     index?: number,
     subField?: string,
   ) => {
-    // Renamed
     if (!editableResume) return
 
     setEditableResume((prev) => {
       if (!prev) return prev
-      const updated = JSON.parse(JSON.stringify(prev)) // Deep copy
+      const updated = JSON.parse(JSON.stringify(prev))
 
       if (section === "personalInfo") {
         updated.personalInfo = { ...updated.personalInfo, [field]: value }
@@ -282,7 +304,6 @@ export default function DashboardPage() {
     })
   }
 
-  // Reset editing state when generated resume changes
   useEffect(() => {
     if (generatedResume) {
       setEditableResume(JSON.parse(JSON.stringify(generatedResume)))
@@ -304,7 +325,6 @@ export default function DashboardPage() {
         <p className="text-gray-600">Paste a job description to get a tailored resume and cover letter in seconds</p>
       </div>
 
-      {/* Job Description Input */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -351,7 +371,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Status Messages */}
       {error && (
         <Card className="mb-6 border-red-200 bg-red-50">
           <CardContent className="pt-6">
@@ -405,7 +424,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Generated Content Area with Tabs */}
       {(generatedResume || generatedCoverLetter || jobAnalysisData) && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -417,7 +435,6 @@ export default function DashboardPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Resume Tab Content */}
           <TabsContent value="resume">
             {generatedResume && (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -431,25 +448,30 @@ export default function DashboardPage() {
                         </CardTitle>
                         <div className="flex gap-2 flex-wrap">
                           {isEditingResume ? (
-                            <Button onClick={handleSaveResumeChanges} size="sm" disabled={isDownloading}>
+                            <Button onClick={handleSaveResumeChanges} size="sm" disabled={isDownloadingResume}>
                               <Save className="mr-2 h-4 w-4" />
                               Save Resume
                             </Button>
                           ) : (
-                            <Button onClick={handleEditResume} variant="outline" size="sm" disabled={isDownloading}>
+                            <Button
+                              onClick={handleEditResume}
+                              variant="outline"
+                              size="sm"
+                              disabled={isDownloadingResume}
+                            >
                               <Edit3 className="mr-2 h-4 w-4" />
                               Edit Resume
                             </Button>
                           )}
-                          <Button onClick={handleDownloadPDF} size="sm" disabled={isDownloading}>
-                            {isDownloading ? (
+                          <Button onClick={handleDownloadResumePDF} size="sm" disabled={isDownloadingResume}>
+                            {isDownloadingResume ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : (
                               <Download className="mr-2 h-4 w-4" />
                             )}
                             Download PDF
                           </Button>
-                          <Button onClick={handlePrint} size="sm" variant="outline" disabled={isDownloading}>
+                          <Button onClick={handlePrint} size="sm" variant="outline" disabled={isDownloadingResume}>
                             <Printer className="mr-2 h-4 w-4" />
                             Print Resume
                           </Button>
@@ -462,7 +484,6 @@ export default function DashboardPage() {
                           id="resume-preview-content"
                           className={`bg-white shadow-lg w-full max-w-[700px] mx-auto p-8 space-y-6 ${colorScheme === "blue" ? "border-t-4 border-blue-600" : colorScheme === "green" ? "border-t-4 border-green-600" : "border-t-4 border-gray-600"}`}
                         >
-                          {/* Personal Info */}
                           <div className="text-center border-b-2 border-gray-200 pb-4">
                             {isEditingResume && editableResume ? (
                               <div className="space-y-3">
@@ -506,7 +527,6 @@ export default function DashboardPage() {
                               </>
                             )}
                           </div>
-                          {/* Professional Summary */}
                           <div>
                             <h2
                               className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
@@ -524,7 +544,6 @@ export default function DashboardPage() {
                               <p className="text-sm text-gray-700 leading-relaxed">{generatedResume.summary}</p>
                             )}
                           </div>
-                          {/* Skills */}
                           <div>
                             <h2
                               className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
@@ -551,7 +570,6 @@ export default function DashboardPage() {
                               </div>
                             )}
                           </div>
-                          {/* Experience */}
                           <div>
                             <div className="flex items-center justify-between mb-3">
                               <h2
@@ -677,7 +695,6 @@ export default function DashboardPage() {
                               </div>
                             ))}
                           </div>
-                          {/* Education */}
                           <div>
                             <h2
                               className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
@@ -740,7 +757,6 @@ export default function DashboardPage() {
                     </CardContent>
                   </Card>
                 </div>
-                {/* Customization Panel for Resume */}
                 <div className="lg:col-span-1">
                   <Card>
                     <CardHeader>
@@ -752,7 +768,7 @@ export default function DashboardPage() {
                     <CardContent className="space-y-6">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Template</label>
-                        <Select value={resumeTemplate} onValueChange={setResumeTemplate} disabled={isDownloading}>
+                        <Select value={resumeTemplate} onValueChange={setResumeTemplate} disabled={isDownloadingResume}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -766,7 +782,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium mb-2 block">Color Scheme</label>
-                        <Select value={colorScheme} onValueChange={setColorScheme} disabled={isDownloading}>
+                        <Select value={colorScheme} onValueChange={setColorScheme} disabled={isDownloadingResume}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -785,7 +801,7 @@ export default function DashboardPage() {
                             size="sm"
                             className="w-full justify-start"
                             onClick={handleEditResume}
-                            disabled={isEditingResume || isDownloading}
+                            disabled={isEditingResume || isDownloadingResume}
                           >
                             <Edit3 className="mr-2 h-4 w-4" />
                             Edit Content
@@ -795,7 +811,7 @@ export default function DashboardPage() {
                             size="sm"
                             className="w-full justify-start"
                             onClick={handleSaveResumeChanges}
-                            disabled={!isEditingResume || isDownloading}
+                            disabled={!isEditingResume || isDownloadingResume}
                           >
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
@@ -804,10 +820,10 @@ export default function DashboardPage() {
                             variant="outline"
                             size="sm"
                             className="w-full justify-start"
-                            onClick={handleDownloadPDF}
-                            disabled={isDownloading}
+                            onClick={handleDownloadResumePDF}
+                            disabled={isDownloadingResume}
                           >
-                            {isDownloading ? (
+                            {isDownloadingResume ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : (
                               <Download className="mr-2 h-4 w-4" />
@@ -819,7 +835,7 @@ export default function DashboardPage() {
                             size="sm"
                             className="w-full justify-start"
                             onClick={handlePrint}
-                            disabled={isDownloading}
+                            disabled={isDownloadingResume}
                           >
                             <Printer className="mr-2 h-4 w-4" />
                             Print Resume
@@ -842,7 +858,6 @@ export default function DashboardPage() {
             )}
           </TabsContent>
 
-          {/* Cover Letter Tab Content */}
           <TabsContent value="cover-letter">
             {!generatedCoverLetter && jobAnalysisData && generatedResume && (
               <Card className="mb-6">
@@ -879,19 +894,42 @@ export default function DashboardPage() {
                     </CardTitle>
                     <div className="flex gap-2 flex-wrap">
                       {isEditingCoverLetter ? (
-                        <Button onClick={handleSaveCoverLetterChanges} size="sm">
+                        <Button onClick={handleSaveCoverLetterChanges} size="sm" disabled={isDownloadingCoverLetter}>
                           <Save className="mr-2 h-4 w-4" />
                           Save Cover Letter
                         </Button>
                       ) : (
-                        <Button onClick={handleEditCoverLetter} variant="outline" size="sm">
+                        <Button
+                          onClick={handleEditCoverLetter}
+                          variant="outline"
+                          size="sm"
+                          disabled={isDownloadingCoverLetter}
+                        >
                           <Edit3 className="mr-2 h-4 w-4" />
                           Edit Cover Letter
                         </Button>
                       )}
-                      <Button onClick={handleCopyCoverLetter} variant="outline" size="sm">
+                      <Button
+                        onClick={handleCopyCoverLetter}
+                        variant="outline"
+                        size="sm"
+                        disabled={isDownloadingCoverLetter}
+                      >
                         <ClipboardCopy className="mr-2 h-4 w-4" />
                         Copy Text
+                      </Button>
+                      <Button
+                        onClick={handleDownloadCoverLetterPDF}
+                        variant="outline"
+                        size="sm"
+                        disabled={isDownloadingCoverLetter}
+                      >
+                        {isDownloadingCoverLetter ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        Download PDF
                       </Button>
                     </div>
                   </div>

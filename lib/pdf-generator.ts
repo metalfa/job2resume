@@ -216,14 +216,14 @@ export async function downloadResumeAsDirectPDF(
 
   try {
     const canvas = await html2canvas(resumeElement, {
-      scale: 2, // Increased scale for better quality on high DPI, might need adjustment
+      scale: 2,
       useCORS: true,
       logging: false,
-      windowWidth: resumeElement.scrollWidth, // Ensure full width is captured
-      windowHeight: resumeElement.scrollHeight, // Ensure full height is captured
+      windowWidth: resumeElement.scrollWidth,
+      windowHeight: resumeElement.scrollHeight,
     })
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.9) // Slightly higher quality JPEG
+    const imgData = canvas.toDataURL("image/jpeg", 0.9)
 
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -239,25 +239,21 @@ export async function downloadResumeAsDirectPDF(
 
     let finalImgWidth, finalImgHeight
 
-    // Fit to page width, adjust height proportionally
     finalImgWidth = pdfPageWidth
     finalImgHeight = finalImgWidth / aspectRatio
 
-    // If calculated height is greater than page height, scale down to fit page height
     if (finalImgHeight > pdfPageHeight) {
       finalImgHeight = pdfPageHeight
       finalImgWidth = finalImgHeight * aspectRatio
     }
 
-    // If after fitting to height, width is greater than page width (shouldn't happen if aspect ratio is maintained from width-first fit)
-    // This is a safeguard, primary fitting is by width then scale down if height exceeds.
     if (finalImgWidth > pdfPageWidth) {
       finalImgWidth = pdfPageWidth
       finalImgHeight = finalImgWidth / aspectRatio
     }
 
     const xOffset = (pdfPageWidth - finalImgWidth) / 2
-    const yOffset = 0 // Content starts at the top of the PDF page
+    const yOffset = 0
 
     pdf.addImage(imgData, "JPEG", xOffset, yOffset, finalImgWidth, finalImgHeight, undefined, "FAST")
     pdf.save(`${resume.personalInfo.name.replace(/\s+/g, "_")}_Resume.pdf`)
@@ -275,4 +271,61 @@ export async function printResumeDocument(resume: TailoredResume, template = "pr
   const htmlContent = generateResumeHTML(resume, template, colorScheme)
   const title = `Print Resume - ${resume.personalInfo.name}`
   openPrintWindow(htmlContent, title)
+}
+
+// New function to download cover letter as PDF
+export async function downloadCoverLetterAsPDF(coverLetterText: string, candidateName: string) {
+  try {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "in",
+      format: "letter",
+    })
+
+    // Set document properties (optional)
+    pdf.setProperties({
+      title: `${candidateName} - Cover Letter`,
+      subject: "Cover Letter",
+      author: candidateName,
+    })
+
+    // Set font - jsPDF supports standard fonts like 'times', 'helvetica', 'courier'
+    // For custom fonts, you'd need to embed them, which is more complex.
+    // We'll use a standard font for simplicity.
+    pdf.setFont("times", "normal")
+    pdf.setFontSize(12)
+
+    // Define margins (in inches)
+    const marginLeft = 1
+    const marginRight = 1
+    const marginTop = 1
+    const marginBottom = 1
+
+    // Calculate usable width for text
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const usableWidth = pageWidth - marginLeft - marginRight
+
+    // Split text into lines that fit the usable width
+    const lines = pdf.splitTextToSize(coverLetterText, usableWidth)
+
+    // Add text to PDF
+    let cursorY = marginTop
+    const lineHeight = pdf.getLineHeight() / pdf.internal.scaleFactor // Get line height in inches
+
+    lines.forEach((line: string) => {
+      if (cursorY + lineHeight > pageHeight - marginBottom) {
+        pdf.addPage()
+        cursorY = marginTop
+      }
+      pdf.text(line, marginLeft, cursorY)
+      cursorY += lineHeight
+    })
+
+    pdf.save(`${candidateName.replace(/\s+/g, "_")}_Cover_Letter.pdf`)
+  } catch (error) {
+    console.error("Error generating Cover Letter PDF:", error)
+    alert("Sorry, there was an error generating the Cover Letter PDF. Please check the browser console for details.")
+    throw error // Re-throw to be caught by the caller if needed
+  }
 }
