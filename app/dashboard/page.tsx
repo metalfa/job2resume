@@ -304,6 +304,30 @@ export default function DashboardPage() {
     })
   }
 
+  const addEducation = () => {
+    if (!editableResume) return
+    setEditableResume((prev) => ({
+      ...prev!,
+      education: [
+        ...prev!.education,
+        {
+          degree: "Degree Name",
+          institution: "Institution Name",
+          location: "City, State",
+          year: "Graduation Year",
+        },
+      ],
+    }))
+  }
+
+  const removeEducation = (index: number) => {
+    if (!editableResume) return
+    setEditableResume((prev) => ({
+      ...prev!,
+      education: prev!.education.filter((_, i) => i !== index),
+    }))
+  }
+
   useEffect(() => {
     if (generatedResume) {
       setEditableResume(JSON.parse(JSON.stringify(generatedResume)))
@@ -696,18 +720,40 @@ export default function DashboardPage() {
                             ))}
                           </div>
                           <div>
-                            <h2
-                              className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1 mb-3`}
-                            >
-                              EDUCATION
-                            </h2>
+                            <div className="flex items-center justify-between mb-3">
+                              <h2
+                                className={`text-lg font-semibold ${colorScheme === "blue" ? "text-blue-800" : colorScheme === "green" ? "text-green-800" : "text-gray-800"} border-b border-gray-300 pb-1`}
+                              >
+                                EDUCATION
+                              </h2>
+                              {isEditingResume && (
+                                <Button onClick={addEducation} size="sm" variant="outline">
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Education
+                                </Button>
+                              )}
+                            </div>
                             {(isEditingResume && editableResume
                               ? editableResume.education
                               : generatedResume.education
                             )?.map((edu, index) => (
-                              <div key={index} className="mb-3">
+                              <div key={index} className="mb-4 relative">
+                                {" "}
+                                {/* Added mb-4 for consistency and relative positioning */}
+                                {isEditingResume && (
+                                  <Button
+                                    onClick={() => removeEducation(index)}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="absolute top-0 right-0 text-red-500 hover:text-red-700 p-1 h-auto z-10" // Added z-10
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 {isEditingResume && editableResume ? (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded p-3 bg-gray-50">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded p-4 bg-gray-50 pt-8">
+                                    {" "}
+                                    {/* Added pt-8 for space for delete button */}
                                     <Input
                                       value={edu.degree}
                                       onChange={(e) =>
@@ -739,7 +785,9 @@ export default function DashboardPage() {
                                     />
                                   </div>
                                 ) : (
-                                  <>
+                                  <div className="mb-3">
+                                    {" "}
+                                    {/* Keep original mb-3 for non-editing display */}
                                     <div className="flex justify-between items-start">
                                       <h3 className="font-semibold text-gray-800">{edu.degree}</h3>
                                       <span className="text-sm text-gray-600 whitespace-nowrap ml-4">{edu.year}</span>
@@ -747,7 +795,7 @@ export default function DashboardPage() {
                                     <p className="text-sm text-gray-600 italic">
                                       {edu.institution} | {edu.location}
                                     </p>
-                                  </>
+                                  </div>
                                 )}
                               </div>
                             ))}
