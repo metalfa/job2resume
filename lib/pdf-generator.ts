@@ -49,10 +49,8 @@ export function generateResumeHTML(resume: TailoredResume, template = "professio
 
   const currentColors = colors[colorScheme as keyof typeof colors] || colors.blue
 
-  // The .resume-container is styled with width: 8.5in and padding: 0.5in.
-  // This means the content area is 7.5in, and the total width captured by html2canvas will represent 8.5in.
   return `
-    <div class="resume-container" style="width: 8.5in; margin: 0 auto; background: white; padding: 0.5in; font-family: 'Inter', sans-serif; font-size: 11pt; line-height: 1.5; color: #1a1a1a;">
+    <div class="resume-container" style="width: 8.5in; margin: 0 auto; background: white; padding: 0 0.5in 0.25in 0.5in; font-family: 'Inter', sans-serif; font-size: 10.5pt; line-height: 1.4; color: #1a1a1a;">
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         :root {
@@ -62,31 +60,31 @@ export function generateResumeHTML(resume: TailoredResume, template = "professio
           --light-color: ${currentColors.light};
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid var(--secondary-color); }
-        .name { font-size: 28pt; font-weight: 700; color: var(--primary-color); margin-bottom: 8px; letter-spacing: -0.5px; }
-        .contact-info { font-size: 10pt; color: #4b5563; font-weight: 400; }
+        .header { text-align: center; margin-bottom: 20px; padding-top: 10px; padding-bottom: 15px; border-bottom: 2px solid var(--secondary-color); }
+        .name { font-size: 26pt; font-weight: 700; color: var(--primary-color); margin-bottom: 6px; letter-spacing: -0.5px; }
+        .contact-info { font-size: 9.5pt; color: #4b5563; font-weight: 400; }
         .contact-item { display: inline; }
-        .contact-separator { margin: 0 8px; color: #9ca3af; }
-        .section { margin-bottom: 25px; }
-        .section-title { font-size: 12pt; font-weight: 600; color: var(--primary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--accent-color); }
-        .summary-content { font-size: 11pt; line-height: 1.6; color: #374151; text-align: justify; font-weight: 400; }
-        .skills-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-        .skill-item { background: var(--light-color); border: 1px solid var(--accent-color); padding: 4px 12px; border-radius: 4px; font-size: 9pt; font-weight: 500; color: var(--primary-color); display: inline-block; }
-        .experience-item { margin-bottom: 20px; page-break-inside: avoid; }
-        .experience-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .contact-separator { margin: 0 6px; color: #9ca3af; }
+        .section { margin-bottom: 15px; }
+        .section-title { font-size: 11pt; font-weight: 600; color: var(--primary-color); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-bottom: 3px; border-bottom: 1px solid var(--accent-color); }
+        .summary-content { font-size: 10pt; line-height: 1.45; color: #374151; text-align: justify; font-weight: 400; }
+        .skills-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .skill-item { background: var(--light-color); border: 1px solid var(--accent-color); padding: 3px 10px; border-radius: 3px; font-size: 8.5pt; font-weight: 500; color: var(--primary-color); display: inline-block; }
+        .experience-item { margin-bottom: 12px; page-break-inside: avoid; }
+        .experience-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .job-info { flex: 1; }
-        .job-title { font-size: 12pt; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
-        .company-info { font-size: 10pt; color: #6b7280; font-weight: 500; font-style: italic; }
-        .duration { font-size: 10pt; color: #6b7280; font-weight: 500; text-align: right; white-space: nowrap; margin-left: 20px; }
+        .job-title { font-size: 11pt; font-weight: 600; color: #1f2937; margin-bottom: 1px; }
+        .company-info { font-size: 9.5pt; color: #6b7280; font-weight: 500; font-style: italic; }
+        .duration { font-size: 9.5pt; color: #6b7280; font-weight: 500; text-align: right; white-space: nowrap; margin-left: 15px; }
         .achievements-list { list-style: none; margin-left: 0; padding-left: 0; }
-        .achievement-item { position: relative; padding-left: 16px; margin-bottom: 4px; font-size: 10pt; line-height: 1.5; color: #374151; }
-        .achievement-item::before { content: "▸"; position: absolute; left: 0; color: var(--secondary-color); font-weight: bold; }
-        .education-item { margin-bottom: 12px; }
+        .achievement-item { position: relative; padding-left: 14px; margin-bottom: 3px; font-size: 9.5pt; line-height: 1.4; color: #374151; }
+        .achievement-item::before { content: "▸"; position: absolute; left: 0; top: 1px; color: var(--secondary-color); font-weight: bold; font-size: 9pt; }
+        .education-item { margin-bottom: 8px; page-break-inside: avoid; }
         .education-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .degree-info { flex: 1; }
-        .degree { font-size: 11pt; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
-        .institution { font-size: 10pt; color: #6b7280; font-style: italic; }
-        .graduation-year { font-size: 10pt; color: #6b7280; font-weight: 500; white-space: nowrap; margin-left: 20px; }
+        .degree { font-size: 10.5pt; font-weight: 600; color: #1f2937; margin-bottom: 1px; }
+        .institution { font-size: 9.5pt; color: #6b7280; font-style: italic; }
+        .graduation-year { font-size: 9.5pt; color: #6b7280; font-weight: 500; white-space: nowrap; margin-left: 15px; }
       </style>
       <!-- Header Section -->
       <div class="header">
@@ -171,10 +169,12 @@ function openPrintWindow(htmlContent: string, title: string) {
       <style>
         @media print {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { size: letter; margin: 0.5in; }
-          .resume-container { page-break-inside: avoid; }
+          /* Adjusted margins: top 0, right 0.5in, bottom 0.25in, left 0.5in */
+          @page { size: letter; margin: 0 0.5in 0.25in 0.5in; }
+          .resume-container { width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; page-break-inside: avoid; }
           .section { page-break-inside: avoid; }
           .experience-item { page-break-inside: avoid; }
+          .education-item { page-break-inside: avoid; }
         }
       </style>
     </head>
@@ -200,12 +200,10 @@ export async function downloadResumeAsDirectPDF(
 
   const tempContainer = document.createElement("div")
   tempContainer.style.position = "absolute"
-  tempContainer.style.left = "-9999px" // Position off-screen
-  // tempContainer.style.width = "8.5in"; // Width is set on .resume-container directly
-  tempContainer.innerHTML = htmlContent // This will contain the .resume-container div
+  tempContainer.style.left = "-9999px"
+  tempContainer.innerHTML = htmlContent
   document.body.appendChild(tempContainer)
 
-  // Crucial: Ensure the .resume-container itself is the direct child being measured if tempContainer has no explicit width.
   const resumeElement = tempContainer.querySelector<HTMLElement>(".resume-container")
   if (!resumeElement) {
     console.error("Resume element (.resume-container) not found in tempContainer.")
@@ -214,49 +212,50 @@ export async function downloadResumeAsDirectPDF(
     return
   }
 
-  // A short delay can help ensure all styles and fonts are applied, especially web fonts.
   await new Promise((resolve) => setTimeout(resolve, 500))
 
   try {
     const canvas = await html2canvas(resumeElement, {
-      // Capture the resumeElement directly
-      scale: 1.5,
+      scale: 2,
       useCORS: true,
       logging: false,
-      // width and height for html2canvas are derived from the element's rendered size
+      windowWidth: resumeElement.scrollWidth,
+      windowHeight: resumeElement.scrollHeight,
     })
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.8)
+    const imgData = canvas.toDataURL("image/jpeg", 0.9)
 
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "in",
-      format: "letter", // US Letter: 8.5in x 11in
+      format: "letter",
     })
 
-    const pdfPageWidth = pdf.internal.pageSize.getWidth() // 8.5 inches
-    const pdfPageHeight = pdf.internal.pageSize.getHeight() // 11 inches
+    const pdfPageWidth = pdf.internal.pageSize.getWidth()
+    const pdfPageHeight = pdf.internal.pageSize.getHeight()
 
     const imgProps = pdf.getImageProperties(imgData)
-    // Aspect ratio of the captured image (canvas pixels)
     const aspectRatio = imgProps.width / imgProps.height
 
     let finalImgWidth, finalImgHeight
 
-    // Try to fit by width first
     finalImgWidth = pdfPageWidth
     finalImgHeight = finalImgWidth / aspectRatio
 
-    // If that makes it too tall, fit by height instead
     if (finalImgHeight > pdfPageHeight) {
       finalImgHeight = pdfPageHeight
       finalImgWidth = finalImgHeight * aspectRatio
     }
 
-    const xOffset = (pdfPageWidth - finalImgWidth) / 2 // Center horizontally
-    const yOffset = 0 // Align to top
+    if (finalImgWidth > pdfPageWidth) {
+      finalImgWidth = pdfPageWidth
+      finalImgHeight = finalImgWidth / aspectRatio
+    }
 
-    pdf.addImage(imgData, "JPEG", xOffset, yOffset, finalImgWidth, finalImgHeight, undefined, "MEDIUM")
+    const xOffset = (pdfPageWidth - finalImgWidth) / 2
+    const yOffset = 0
+
+    pdf.addImage(imgData, "JPEG", xOffset, yOffset, finalImgWidth, finalImgHeight, undefined, "FAST")
     pdf.save(`${resume.personalInfo.name.replace(/\s+/g, "_")}_Resume.pdf`)
   } catch (error) {
     console.error("Error generating PDF:", error)
@@ -272,4 +271,61 @@ export async function printResumeDocument(resume: TailoredResume, template = "pr
   const htmlContent = generateResumeHTML(resume, template, colorScheme)
   const title = `Print Resume - ${resume.personalInfo.name}`
   openPrintWindow(htmlContent, title)
+}
+
+// New function to download cover letter as PDF
+export async function downloadCoverLetterAsPDF(coverLetterText: string, candidateName: string) {
+  try {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "in",
+      format: "letter",
+    })
+
+    // Set document properties (optional)
+    pdf.setProperties({
+      title: `${candidateName} - Cover Letter`,
+      subject: "Cover Letter",
+      author: candidateName,
+    })
+
+    // Set font - jsPDF supports standard fonts like 'times', 'helvetica', 'courier'
+    // For custom fonts, you'd need to embed them, which is more complex.
+    // We'll use a standard font for simplicity.
+    pdf.setFont("times", "normal")
+    pdf.setFontSize(12)
+
+    // Define margins (in inches)
+    const marginLeft = 1
+    const marginRight = 1
+    const marginTop = 1
+    const marginBottom = 1
+
+    // Calculate usable width for text
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const usableWidth = pageWidth - marginLeft - marginRight
+
+    // Split text into lines that fit the usable width
+    const lines = pdf.splitTextToSize(coverLetterText, usableWidth)
+
+    // Add text to PDF
+    let cursorY = marginTop
+    const lineHeight = pdf.getLineHeight() / pdf.internal.scaleFactor // Get line height in inches
+
+    lines.forEach((line: string) => {
+      if (cursorY + lineHeight > pageHeight - marginBottom) {
+        pdf.addPage()
+        cursorY = marginTop
+      }
+      pdf.text(line, marginLeft, cursorY)
+      cursorY += lineHeight
+    })
+
+    pdf.save(`${candidateName.replace(/\s+/g, "_")}_Cover_Letter.pdf`)
+  } catch (error) {
+    console.error("Error generating Cover Letter PDF:", error)
+    alert("Sorry, there was an error generating the Cover Letter PDF. Please check the browser console for details.")
+    throw error // Re-throw to be caught by the caller if needed
+  }
 }
