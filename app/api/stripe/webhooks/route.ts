@@ -1,6 +1,5 @@
 // New file: app/api/stripe/webhooks/route.ts
 import Stripe from "stripe"
-import { headers } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -18,7 +17,11 @@ const relevantEvents = new Set([
 
 export async function POST(req: Request) {
   const body = await req.text()
-  const sig = headers().get("Stripe-Signature") as string
+  const sig = req.headers.get("Stripe-Signature") as string | null
+
+  if (!sig) {
+    return new Response("Missing Stripe signature", { status: 400 })
+  }
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
   let event: Stripe.Event
