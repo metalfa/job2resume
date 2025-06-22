@@ -2,68 +2,90 @@
 
 import { analyzeJobDescription } from "@/lib/openai"
 import {
-  generateTailoredResume,
-  generateTailoredCoverLetter,
+  generateTailoredResume as generateResumeAIService, // Renamed to avoid conflict
+  generateTailoredCoverLetter as generateCoverLetterAIService, // Renamed
   type JobAnalysis,
   type TailoredResume,
-} from "@/lib/resume-ai" // Added TailoredResume and generateTailoredCoverLetter
+} from "@/lib/resume-ai"
+import { updateTrialUsage, getUserSubscription } from "@/lib/supabase/userActions" // Import new function
+
+const TRIAL_RESUME_LIMIT = 3
+const TRIAL_COVER_LETTER_LIMIT = 3
 
 export async function analyzeJobDescriptionAction(jobDescription: string) {
   try {
     if (!jobDescription.trim()) {
       return { error: "Job description is required" }
     }
-
     const analysis = await analyzeJobDescription(jobDescription)
     return { success: true, data: analysis }
   } catch (error) {
     console.error("Error in analyzeJobDescriptionAction:", error)
-    return {
-      error: error instanceof Error ? error.message : "Failed to analyze job description",
-    }
+    return { error: error instanceof Error ? error.message : "Failed to analyze job description" }
   }
 }
 
-export async function generateResumeAction(jobAnalysis: JobAnalysis) {
+export async function generateResumeAction(jobAnalysis: JobAnalysis, userId?: string) {
+  if (!userId) return { error: "User not authenticated" }
+
   try {
+    const userSub = await getUserSubscription(userId)
+    if (userSub.subscription_status !== "active" && (userSub.trial_resumes_used || 0) >= TRIAL_RESUME_LIMIT) {
+      return { error: "Resume generation limit reached for free trial. Please subscribe." }
+    }
+
     const defaultResumeData = {
+      /* ... your default data ... */
       type: "perfect" as const,
       data: {
         personalInfo: {
-          name: "Faycal Ben Sassi", // Consider making this dynamic or from user profile
-          email: "bensassi.faysel@gmail.com",
-          phone: "(773) 837-3043",
-          location: "Chicago, Illinois",
+          name: "Your Name",
+          email: "your.email@example.com",
+          phone: "123-456-7890",
+          location: "City, State",
         },
-        summary: "Professional summary will be generated based on the job description",
+        summary: "",
         skills: [],
         experience: [],
         education: [],
       },
     }
+    const tailoredResume = await generateResumeAIService(jobAnalysis, defaultResumeData)
 
-    const tailoredResume = await generateTailoredResume(jobAnalysis, defaultResumeData)
-    return { success: true, data: tailoredResume }
+    let updatedSubscription = userSub
+    if (userSub.subscription_status === "free_trial") {
+      updatedSubscription = await updateTrialUsage(userId, "resume")
+    }
+
+    return { success: true, data: { resume: tailoredResume, updatedSubscription } }
   } catch (error) {
     console.error("Error in generateResumeAction:", error)
-    return {
-      error: error instanceof Error ? error.message : "Failed to generate resume",
-    }
+    return { error: error instanceof Error ? error.message : "Failed to generate resume" }
   }
 }
 
-// New action for generating cover letter
-export async function generateCoverLetterAction(jobAnalysis: JobAnalysis, resume: TailoredResume) {
+export async function generateCoverLetterAction(jobAnalysis: JobAnalysis, resume: TailoredResume, userId?: string) {
+  if (!userId) return { error: "User not authenticated" }
+
   try {
-    if (!jobAnalysis || !resume) {
-      return { error: "Job analysis and resume data are required to generate a cover letter." }
+    const userSub = await getUserSubscription(userId)
+    if (
+      userSub.subscription_status !== "active" &&
+      (userSub.trial_cover_letters_used || 0) >= TRIAL_COVER_LETTER_LIMIT
+    ) {
+      return { error: "Cover letter generation limit reached for free trial. Please subscribe." }
     }
-    const coverLetterText = await generateTailoredCoverLetter(jobAnalysis, resume)
-    return { success: true, data: coverLetterText }
+
+    const coverLetterText = await generateCoverLetterAIService(jobAnalysis, resume)
+
+    let updatedSubscription = userSub
+    if (userSub.subscription_status === "free_trial") {
+      updatedSubscription = await updateTrialUsage(userId, "cover_letter")
+    }
+
+    return { success: true, data: { coverLetter: coverLetterText, updatedSubscription } }
   } catch (error) {
     console.error("Error in generateCoverLetterAction:", error)
-    return {
-      error: error instanceof Error ? error.message : "Failed to generate cover letter",
-    }
+    return { error: error instanceof Error ? error.message : "Failed to generate cover letter" }
   }
 }
