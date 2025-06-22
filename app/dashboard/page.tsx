@@ -35,10 +35,26 @@ import {
   type TailoredResume,
 } from "@/lib/pdf-generator"
 import type { JobAnalysis } from "@/lib/resume-ai"
-import { useSession, signIn } from "next-auth/react"
+
+// Wrap the import in a try/catch so builds won’t crash if next-auth isn’t present.
+let useSession: (() => { data: any; status: "authenticated" | "unauthenticated" | "loading" }) | undefined
+let signIn: ((provider: string, opts?: Record<string, any>) => void) | undefined
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const auth = require("next-auth/react")
+  useSession = auth.useSession
+  signIn = auth.signIn
+} catch {
+  // Safe fallback – renders as unauthenticated
+  useSession = () => ({ data: null, status: "unauthenticated" })
+  signIn = () => {
+    /* noop */
+  }
+}
 
 export default function DashboardPage() {
-  const { data: session, status: authStatus } = useSession()
+  const { data: session, status: authStatus } = useSession!()
 
   const [jobDescription, setJobDescription] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)

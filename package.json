@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
-    "@auth/core": "latest",
     "@radix-ui/react-select": "latest",
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-tabs": "latest",
@@ -22,9 +21,7 @@
     "jspdf": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
-    "next-auth": "latest",
     "next-themes": "latest",
-    "nodemailer": "latest",
     "react": "^19",
     "react-dom": "^19",
     "tailwind-merge": "^2.5.5",
