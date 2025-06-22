@@ -1,477 +1,307 @@
-// This is now the main dashboard page, accessible only when authenticated.
-// The content is similar to the old app/dashboard/page.tsx
-// Middleware will protect this route.
-"use client"
-
-import { useState, useEffect } from "react"
+import Link from "next/link"
+import { ArrowRight, CheckCircle, FileText, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Loader2,
-  Wand2,
-  Download,
-  Edit3,
-  AlertCircle,
-  CheckCircle,
-  FileText,
-  Printer,
-  ClipboardCopy,
-  Mail,
-} from "lucide-react"
-import {
-  analyzeJobDescriptionAction,
-  generateResumeAction,
-  generateCoverLetterAction,
-} from "@/app/actions/resume-actions" // Will need updates for trial checks
-import type { TailoredResume } from "@/lib/pdf-generator"
-import type { JobAnalysis } from "@/lib/resume-ai"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import SubscriptionPrompt from "@/components/SubscriptionPrompt" // New Component
-import { getUserSubscription } from "@/lib/supabase/userActions" // New lib function
 
-interface UserSubscription {
-  trial_resumes_used: number
-  trial_cover_letters_used: number
-  subscription_status: string
-}
-
-const TRIAL_RESUME_LIMIT = 3
-const TRIAL_COVER_LETTER_LIMIT = 3
-
-export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
-  const [jobDescription, setJobDescription] = useState("")
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [jobAnalysisData, setJobAnalysisData] = useState<JobAnalysis | null>(null)
-  const [generatedResume, setGeneratedResume] = useState<TailoredResume | null>(null)
-  const [isEditingResume, setIsEditingResume] = useState(false)
-  const [editableResume, setEditableResume] = useState<TailoredResume | null>(null)
-  const [generatedCoverLetter, setGeneratedCoverLetter] = useState<string | null>(null)
-  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
-  const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false)
-  const [editableCoverLetter, setEditableCoverLetter] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [resumeTemplate, setResumeTemplate] = useState("professional")
-  const [colorScheme, setColorScheme] = useState("blue")
-  const [isDownloadingResume, setIsDownloadingResume] = useState(false)
-  const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
-  const [activeTab, setActiveTab] = useState("resume")
-  const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null)
-  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false)
-
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.id) {
-      const fetchSubscription = async () => {
-        const sub = await getUserSubscription(session.user.id!)
-        setUserSubscription(sub)
-      }
-      fetchSubscription()
-    }
-  }, [session, status])
-
-  const canGenerateResume = () => {
-    if (!userSubscription) return false
-    return userSubscription.subscription_status === "active" || userSubscription.trial_resumes_used < TRIAL_RESUME_LIMIT
-  }
-
-  const canGenerateCoverLetter = () => {
-    if (!userSubscription) return false
-    return (
-      userSubscription.subscription_status === "active" ||
-      userSubscription.trial_cover_letters_used < TRIAL_COVER_LETTER_LIMIT
-    )
-  }
-
-  const handleAnalyzeAndGenerate = async () => {
-    if (!jobDescription.trim()) {
-      setError("Please paste a job description first")
-      return
-    }
-    if (!canGenerateResume()) {
-      setError("You've reached your resume generation limit for the free trial.")
-      setShowSubscriptionPrompt(true)
-      return
-    }
-
-    setIsAnalyzing(true)
-    setError(null)
-    setSuccess(null)
-    // ... (rest of the logic, but call updateTrialUsage for resume)
-    try {
-      const analysisResult = await analyzeJobDescriptionAction(jobDescription)
-      if (analysisResult.error || !analysisResult.data) throw new Error(analysisResult.error || "Analysis failed")
-      setJobAnalysisData(analysisResult.data)
-
-      const resumeResult = await generateResumeAction(analysisResult.data, session?.user?.id) // Pass userId
-      if (resumeResult.error || !resumeResult.data) throw new Error(resumeResult.error || "Resume generation failed")
-
-      setGeneratedResume(resumeResult.data.resume)
-      setEditableResume(JSON.parse(JSON.stringify(resumeResult.data.resume)))
-      if (resumeResult.data.updatedSubscription) setUserSubscription(resumeResult.data.updatedSubscription)
-      setSuccess("Resume generated successfully!")
-      setActiveTab("resume")
-    } catch (e: any) {
-      setError(e.message || "An unexpected error occurred.")
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  const handleGenerateCoverLetter = async () => {
-    if (!jobAnalysisData || !generatedResume) {
-      setError("Please generate a resume first.")
-      return
-    }
-    if (!canGenerateCoverLetter()) {
-      setError("You've reached your cover letter generation limit for the free trial.")
-      setShowSubscriptionPrompt(true)
-      return
-    }
-    setIsGeneratingCoverLetter(true)
-    setError(null)
-    setSuccess(null)
-    // ... (rest of the logic, but call updateTrialUsage for cover letter)
-    try {
-      const coverLetterResult = await generateCoverLetterAction(jobAnalysisData, generatedResume, session?.user?.id) // Pass userId
-      if (coverLetterResult.error || !coverLetterResult.data)
-        throw new Error(coverLetterResult.error || "Cover letter generation failed")
-
-      setGeneratedCoverLetter(coverLetterResult.data.coverLetter)
-      setEditableCoverLetter(coverLetterResult.data.coverLetter)
-      if (coverLetterResult.data.updatedSubscription) setUserSubscription(coverLetterResult.data.updatedSubscription)
-      setSuccess("Cover letter generated successfully!")
-      setIsEditingCoverLetter(false)
-    } catch (e: any) {
-      setError(e.message || "An unexpected error occurred.")
-    } finally {
-      setIsGeneratingCoverLetter(false)
-    }
-  }
-
-  // Placeholder for edit/save/download/print handlers - they remain largely the same
-  // but should check subscription status if certain features are premium-only beyond generation.
-  const handleEditResume = () => setIsEditingResume(true)
-  const handleSaveResumeChanges = () => {
-    if (editableResume) {
-      setGeneratedResume(JSON.parse(JSON.stringify(editableResume)))
-      setIsEditingResume(false)
-      setSuccess("Resume changes saved!")
-    }
-  }
-  const handleEditCoverLetter = () => setIsEditingCoverLetter(true)
-  const handleSaveCoverLetterChanges = () => {
-    if (editableCoverLetter !== null) {
-      setGeneratedCoverLetter(editableCoverLetter)
-      setIsEditingCoverLetter(false)
-      setSuccess("Cover letter changes saved!")
-    }
-  }
-  const handleCopyCoverLetter = () => {
-    /* ... */
-  }
-  const handleDownloadResumePDF = async () => {
-    /* ... */
-  }
-  const handleDownloadCoverLetterPDF = async () => {
-    /* ... */
-  }
-  const handlePrint = () => {
-    /* ... */
-  }
-  const handleResumeInputChange = (
-    field: string,
-    value: string,
-    section?: string,
-    index?: number,
-    subField?: string,
-  ) => {
-    /* ... */
-  }
-  const handleCoverLetterInputChange = (value: string) => setEditableCoverLetter(value)
-  const addExperience = () => {
-    /* ... */
-  }
-  const removeExperience = (index: number) => {
-    /* ... */
-  }
-  const addAchievement = (expIndex: number) => {
-    /* ... */
-  }
-  const removeAchievement = (expIndex: number, achIndex: number) => {
-    /* ... */
-  }
-  const addEducation = () => {
-    /* ... */
-  }
-  const removeEducation = (index: number) => {
-    /* ... */
-  }
-
-  useEffect(() => {
-    if (generatedResume) {
-      setEditableResume(JSON.parse(JSON.stringify(generatedResume)))
-      setIsEditingResume(false)
-    }
-  }, [generatedResume])
-
-  useEffect(() => {
-    if (generatedCoverLetter) {
-      setEditableCoverLetter(generatedCoverLetter)
-      setIsEditingCoverLetter(false)
-    }
-  }, [generatedCoverLetter])
-
-  if (status === "loading") {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-  if (status === "unauthenticated") {
-    // This should ideally be handled by middleware, but as a fallback:
-    router.push("/sign-in")
-    return null
-  }
-
+export default function Home() {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {showSubscriptionPrompt && <SubscriptionPrompt onClose={() => setShowSubscriptionPrompt(false)} />}
-
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-1">AI Resume & Cover Letter Generator</h1>
-        {userSubscription && userSubscription.subscription_status === "free_trial" && (
-          <p className="text-sm text-gray-600">
-            Trial: {TRIAL_RESUME_LIMIT - (userSubscription.trial_resumes_used || 0)} resumes &{" "}
-            {TRIAL_COVER_LETTER_LIMIT - (userSubscription.trial_cover_letters_used || 0)} cover letters remaining.
-          </p>
-        )}
-        {userSubscription && userSubscription.subscription_status === "active" && (
-          <p className="text-sm text-green-600 font-medium">Premium Plan Active</p>
-        )}
-      </div>
-
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText /> Job Description
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Paste the complete job description here..."
-            className="min-h-[150px] resize-none"
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-          />
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              {jobDescription ? `${jobDescription.length} characters` : "Paste a job description"}
-            </div>
-            <Button
-              onClick={handleAnalyzeAndGenerate}
-              disabled={!jobDescription.trim() || isAnalyzing || !userSubscription}
-              size="lg"
-              className="min-w-[200px]"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" /> Generate Resume
-                </>
-              )}
-            </Button>
-          </div>
-          {!canGenerateResume() && userSubscription && userSubscription.subscription_status !== "active" && (
-            <p className="text-xs text-red-500 mt-1">
-              Resume generation limit reached for trial.{" "}
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0 h-auto text-xs"
-                onClick={() => setShowSubscriptionPrompt(true)}
-              >
-                Subscribe for unlimited.
+    <div className="flex flex-col min-h-screen">
+      <header className="border-b w-full">
+        <div className="max-w-screen-xl mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+            <FileText className="h-6 w-6" />
+            <span>Job2Resume</span>
+          </Link>
+          <nav className="hidden md:flex gap-6">
+            <Link href="#features" className="text-sm font-medium hover:underline underline-offset-4">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="text-sm font-medium hover:underline underline-offset-4">
+              How It Works
+            </Link>
+            <Link href="#pricing" className="text-sm font-medium hover:underline underline-offset-4">
+              Pricing
+            </Link>
+          </nav>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm">
+                Sign In
               </Button>
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {error && (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="pt-6 flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-red-800">Error</h3>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      {success && (
-        <Card className="mb-6 border-green-200 bg-green-50">
-          <CardContent className="pt-6 flex items-start gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-green-800">Success</h3>
-              <p className="text-sm text-green-700">{success}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {(generatedResume || generatedCoverLetter || jobAnalysisData) && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="resume" disabled={!generatedResume}>
-              Resume
-            </TabsTrigger>
-            <TabsTrigger value="cover-letter" disabled={!jobAnalysisData || !generatedResume}>
-              Cover Letter
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="resume">
-            {generatedResume && (
-              // Resume Editor/Viewer UI (simplified for brevity, use your existing detailed UI)
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Generated Resume</CardTitle>
-                    <div className="flex gap-2">
-                      <Button onClick={handleEditResume} variant="outline" size="sm">
-                        <Edit3 className="mr-1 h-4 w-4" /> Edit
-                      </Button>
-                      <Button onClick={handleDownloadResumePDF} size="sm" disabled={isDownloadingResume}>
-                        {isDownloadingResume ? (
-                          <Loader2 className="animate-spin mr-1 h-4 w-4" />
-                        ) : (
-                          <Download className="mr-1 h-4 w-4" />
-                        )}{" "}
-                        PDF
-                      </Button>
-                      <Button onClick={handlePrint} size="sm" variant="outline">
-                        <Printer className="mr-1 h-4 w-4" /> Print
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isEditingResume && editableResume ? (
-                    <div>
-                      {" "}
-                      {/* Your resume editing UI here, using editableResume and handleResumeInputChange */}
-                      <Textarea
-                        value={JSON.stringify(editableResume, null, 2)}
-                        rows={20}
-                        onChange={(e) => setEditableResume(JSON.parse(e.target.value))}
-                      />
-                      <Button onClick={handleSaveResumeChanges} className="mt-2">
-                        Save Resume
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="p-4 border rounded bg-gray-50 min-h-[300px] whitespace-pre-wrap font-mono text-xs">
-                      {JSON.stringify(generatedResume, null, 2)}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-          <TabsContent value="cover-letter">
-            {!generatedCoverLetter && jobAnalysisData && generatedResume && (
-              <Card className="mb-6">
-                <CardContent className="pt-6 text-center">
-                  <p className="mb-4 text-gray-600">Generate a cover letter to match your new resume?</p>
-                  <Button onClick={handleGenerateCoverLetter} disabled={isGeneratingCoverLetter || !userSubscription}>
-                    {isGeneratingCoverLetter ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="mr-2 h-4 w-4" /> Generate Cover Letter
-                      </>
-                    )}
+            </Link>
+            <Link href="/dashboard">
+              <Button size="sm">Get Started</Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 w-full">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-b from-white to-gray-50">
+          <div className="max-w-screen-xl mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
+                  Land Your Dream Job with a Tailored Resume
+                </h1>
+                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl">
+                  Our AI-powered platform customizes your resume to match job descriptions, increasing your chances of
+                  getting interviews by up to 70%.
+                </p>
+              </div>
+              <div className="space-x-4">
+                <Link href="/dashboard">
+                  <Button className="px-8 animate-pulse">
+                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  {!canGenerateCoverLetter() &&
-                    userSubscription &&
-                    userSubscription.subscription_status !== "active" && (
-                      <p className="text-xs text-red-500 mt-1">
-                        Cover letter generation limit reached for trial.{" "}
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="p-0 h-auto text-xs"
-                          onClick={() => setShowSubscriptionPrompt(true)}
-                        >
-                          Subscribe for unlimited.
-                        </Button>
-                      </p>
-                    )}
-                </CardContent>
-              </Card>
-            )}
-            {generatedCoverLetter && (
-              // Cover Letter Editor/Viewer UI (simplified)
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Generated Cover Letter</CardTitle>
-                    <div className="flex gap-2">
-                      <Button onClick={handleEditCoverLetter} variant="outline" size="sm">
-                        <Edit3 className="mr-1 h-4 w-4" /> Edit
-                      </Button>
-                      <Button onClick={handleCopyCoverLetter} variant="outline" size="sm">
-                        <ClipboardCopy className="mr-1 h-4 w-4" /> Copy
-                      </Button>
-                      <Button onClick={handleDownloadCoverLetterPDF} size="sm" disabled={isDownloadingCoverLetter}>
-                        {isDownloadingCoverLetter ? (
-                          <Loader2 className="animate-spin mr-1 h-4 w-4" />
-                        ) : (
-                          <Download className="mr-1 h-4 w-4" />
-                        )}{" "}
-                        PDF
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isEditingCoverLetter && editableCoverLetter !== null ? (
-                    <div>
-                      {" "}
-                      {/* Your cover letter editing UI here */}
-                      <Textarea
-                        value={editableCoverLetter}
-                        onChange={(e) => handleCoverLetterInputChange(e.target.value)}
-                        rows={15}
-                      />
-                      <Button onClick={handleSaveCoverLetterChanges} className="mt-2">
-                        Save Cover Letter
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="p-4 border rounded bg-gray-50 min-h-[300px] whitespace-pre-wrap">
-                      {generatedCoverLetter}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+          <div className="max-w-screen-xl mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm">How It Works</div>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Three Simple Steps</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Our platform makes it easy to create a tailored resume in minutes.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 md:gap-12 lg:gap-16 mt-8">
+              <div className="flex flex-col items-center space-y-4 rounded-lg border p-4 transition-all hover:shadow-md">
+                <div className="rounded-full border bg-white p-2 text-gray-900">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Paste Job Description</h3>
+                <p className="text-gray-500">Copy and paste the job description you're interested in applying for.</p>
+              </div>
+              <div className="flex flex-col items-center space-y-4 rounded-lg border p-4 transition-all hover:shadow-md">
+                <div className="rounded-full border bg-white p-2 text-gray-900">
+                  <Upload className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Upload Your Resume</h3>
+                <p className="text-gray-500">Upload your existing resume or choose from our ATS-friendly templates.</p>
+              </div>
+              <div className="flex flex-col items-center space-y-4 rounded-lg border p-4 transition-all hover:shadow-md">
+                <div className="rounded-full border bg-white p-2 text-gray-900">
+                  <CheckCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Get Tailored Results</h3>
+                <p className="text-gray-500">
+                  Receive an optimized resume and cover letter tailored to the job description.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="max-w-screen-xl mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm">Features</div>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Why Choose ResumeTailor</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Our platform offers everything you need to create the perfect resume.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 mt-8">
+              {[
+                {
+                  title: "AI-Powered Optimization",
+                  description:
+                    "Our AI analyzes job descriptions to highlight your most relevant skills and experiences.",
+                },
+                {
+                  title: "ATS-Friendly Templates",
+                  description: "All our templates are designed to pass through Applicant Tracking Systems.",
+                },
+                {
+                  title: "Custom Cover Letters",
+                  description: "Generate personalized cover letters that complement your resume.",
+                },
+                {
+                  title: "Multiple Export Formats",
+                  description: "Download your documents in PDF or Word format.",
+                },
+                {
+                  title: "Keyword Optimization",
+                  description: "We identify and include key terms from the job description.",
+                },
+                {
+                  title: "Real-Time Preview",
+                  description: "See changes to your resume in real-time as you make edits.",
+                },
+              ].map((feature, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col space-y-2 rounded-lg border p-4 transition-all hover:shadow-md"
+                >
+                  <h3 className="text-xl font-bold">{feature.title}</h3>
+                  <p className="text-gray-500">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+          <div className="max-w-screen-xl mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <div className="inline-block rounded-lg bg-gray-100 px-3 py-1 text-sm">Pricing</div>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Simple, Transparent Pricing</h2>
+                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Choose the plan that works best for your job search needs.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 mt-8">
+              {[
+                {
+                  name: "Basic",
+                  price: "$9.99",
+                  description: "Perfect for a single job application",
+                  features: ["1 Tailored Resume", "1 Cover Letter", "PDF & Word Downloads", "24-hour support"],
+                },
+                {
+                  name: "Pro",
+                  price: "$19.99",
+                  description: "Ideal for active job seekers",
+                  features: [
+                    "5 Tailored Resumes",
+                    "5 Cover Letters",
+                    "PDF & Word Downloads",
+                    "Priority support",
+                    "Resume storage",
+                  ],
+                },
+                {
+                  name: "Premium",
+                  price: "$39.99",
+                  description: "For serious job hunters",
+                  features: [
+                    "Unlimited Resumes",
+                    "Unlimited Cover Letters",
+                    "All Export Formats",
+                    "Priority support",
+                    "Resume storage",
+                    "LinkedIn profile optimization",
+                  ],
+                },
+              ].map((plan, index) => (
+                <div
+                  key={index}
+                  className={`flex flex-col rounded-lg border p-6 ${index === 1 ? "border-2 border-primary shadow-lg" : ""}`}
+                >
+                  {index === 1 && (
+                    <div className="rounded-full bg-primary px-3 py-1 text-sm text-white w-fit mx-auto -mt-10 mb-4">
+                      Most Popular
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
+                  <h3 className="text-2xl font-bold">{plan.name}</h3>
+                  <div className="mt-4 flex items-baseline text-gray-900">
+                    <span className="text-3xl font-bold tracking-tight">{plan.price}</span>
+                    <span className="ml-1 text-sm text-gray-500">/month</span>
+                  </div>
+                  <p className="mt-2 text-gray-500">{plan.description}</p>
+                  <ul className="mt-6 space-y-3">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/dashboard" className="mt-8">
+                    <Button className="w-full" variant={index === 1 ? "default" : "outline"}>
+                      Get Started
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+      <footer className="border-t bg-gray-50 w-full">
+        <div className="max-w-screen-xl mx-auto flex flex-col gap-4 py-10 md:flex-row md:gap-8 md:py-12 px-4 md:px-6">
+          <div className="flex-1 space-y-4">
+            <div className="flex items-center gap-2 font-bold text-xl">
+              <FileText className="h-6 w-6" />
+              <span>ResumeTailor</span>
+            </div>
+            <p className="text-sm text-gray-500">AI-powered resume and cover letter tailoring for job seekers.</p>
+          </div>
+          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+            <div className="space-y-4">
+              <h4 className="font-medium">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Careers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-medium">Help</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Support
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Terms
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-medium">Social</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Twitter
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    Instagram
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-gray-500 hover:text-gray-900">
+                    LinkedIn
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="border-t py-6 text-center text-sm text-gray-500">
+          <div className="max-w-screen-xl mx-auto px-4 md:px-6">
+            © {new Date().getFullYear()} ResumeTailor. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
