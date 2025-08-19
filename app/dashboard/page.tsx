@@ -61,6 +61,129 @@ export default function DashboardPage() {
   const [isDownloadingResume, setIsDownloadingResume] = useState(false) // Renamed for clarity
   const [activeTab, setActiveTab] = useState("resume")
 
+  const [isDemoMode, setIsDemoMode] = useState(false)
+
+  // Add this function after the existing state declarations
+  const handleDemoMode = () => {
+    setIsDemoMode(true)
+    setError(null)
+    setSuccess(null)
+
+    // Set demo job analysis data
+    const demoJobAnalysis = {
+      jobTitle: "Senior Software Engineer",
+      companyName: "TechCorp Inc.",
+      industryContext: "Technology/Software Development",
+      seniority: "Senior Level",
+      companySize: "Medium Enterprise",
+      requiredSkills: ["JavaScript", "React", "Node.js", "Python", "SQL"],
+      preferredSkills: ["TypeScript", "AWS", "Docker", "GraphQL"],
+      techStack: ["React", "Node.js", "PostgreSQL", "AWS", "Docker"],
+      softSkills: ["Leadership", "Communication", "Problem-solving", "Team collaboration"],
+      keyResponsibilities: [
+        "Lead development of scalable web applications",
+        "Mentor junior developers and conduct code reviews",
+        "Collaborate with product teams to define technical requirements",
+      ],
+      achievements: [
+        "Deliver high-quality software solutions",
+        "Improve system performance and reliability",
+        "Drive technical innovation and best practices",
+      ],
+      metrics: ["Code quality", "System performance", "Team productivity"],
+      teamSize: "5-8 engineers",
+      reportingStructure: "Reports to Engineering Manager",
+      growthOpportunities: ["Technical leadership", "Architecture design", "Mentoring"],
+      companyValues: ["Innovation", "Quality", "Collaboration"],
+      workEnvironment: "Hybrid - 3 days in office, 2 days remote",
+    }
+
+    // Set demo resume data
+    const demoResume = {
+      personalInfo: {
+        name: "Faycal Ben Sassi",
+        email: "bensassi.faysel@gmail.com",
+        phone: "(773) 837-3043",
+        location: "Chicago, Illinois",
+      },
+      summary:
+        "Experienced Senior Software Engineer with 8+ years of expertise in full-stack development, specializing in React, Node.js, and cloud technologies. Proven track record of leading cross-functional teams, architecting scalable solutions, and delivering high-impact projects that drive business growth. Passionate about mentoring developers and implementing best practices to enhance code quality and team productivity.",
+      skills: [
+        "JavaScript",
+        "TypeScript",
+        "React",
+        "Node.js",
+        "Python",
+        "SQL",
+        "PostgreSQL",
+        "AWS",
+        "Docker",
+        "GraphQL",
+        "REST APIs",
+        "Git",
+        "Agile/Scrum",
+        "Leadership",
+        "Code Review",
+        "System Architecture",
+        "Performance Optimization",
+      ],
+      experience: [
+        {
+          title: "Senior Software Engineer",
+          company: "InnovateTech Solutions",
+          location: "Chicago, IL",
+          duration: "2021 - Present",
+          achievements: [
+            "Led development of a microservices architecture using Node.js and Docker, reducing system latency by 40% and improving scalability for 100K+ users",
+            "Architected and implemented a React-based dashboard that increased user engagement by 60% and reduced customer support tickets by 35%",
+            "Mentored 5 junior developers through code reviews and pair programming, resulting in 50% faster onboarding and improved code quality metrics",
+            "Collaborated with product managers to define technical requirements for 3 major feature releases, delivering all projects on time and under budget",
+            "Optimized database queries and implemented caching strategies, reducing API response times by 55% and improving overall system performance",
+          ],
+        },
+        {
+          title: "Full Stack Developer",
+          company: "Digital Dynamics Corp",
+          location: "Chicago, IL",
+          duration: "2019 - 2021",
+          achievements: [
+            "Developed and maintained 15+ React components for a customer-facing web application serving 50K+ daily active users",
+            "Built RESTful APIs using Node.js and Express, handling 10M+ requests per month with 99.9% uptime",
+            "Implemented automated testing strategies using Jest and Cypress, increasing code coverage from 60% to 95%",
+            "Collaborated with UX/UI designers to create responsive interfaces, improving mobile user experience by 45%",
+          ],
+        },
+        {
+          title: "Software Developer",
+          company: "StartupTech Inc",
+          location: "Chicago, IL",
+          duration: "2017 - 2019",
+          achievements: [
+            "Contributed to the development of a SaaS platform using React and Python, supporting 1000+ enterprise clients",
+            "Implemented data visualization features using D3.js, enabling clients to analyze complex datasets more effectively",
+            "Participated in agile development processes, consistently delivering features within sprint timelines",
+          ],
+        },
+      ],
+      education: [
+        {
+          degree: "Bachelor of Science in Computer Science",
+          institution: "University of Illinois at Chicago",
+          location: "Chicago, IL",
+          year: "2017",
+        },
+      ],
+    }
+
+    setJobAnalysisData(demoJobAnalysis)
+    setGeneratedResume(demoResume)
+    setEditableResume(JSON.parse(JSON.stringify(demoResume)))
+    setSuccess(
+      "Demo resume loaded! This is a sample resume to show the application features. To generate custom resumes, please add OpenAI API credits.",
+    )
+    setActiveTab("resume")
+  }
+
   const handleAnalyzeAndGenerate = async () => {
     if (!jobDescription.trim()) {
       setError("Please paste a job description first")
@@ -400,9 +523,37 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-medium text-red-800">Resume Error</h3>
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-sm text-red-700 mb-3">{error}</p>
+                {error.includes("quota exceeded") && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-600">To resolve this issue:</p>
+                    <ul className="text-sm text-red-600 list-disc list-inside space-y-1">
+                      <li>
+                        Check your OpenAI billing at{" "}
+                        <a
+                          href="https://platform.openai.com/account/billing"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline"
+                        >
+                          platform.openai.com/account/billing
+                        </a>
+                      </li>
+                      <li>Add credits to your OpenAI account</li>
+                      <li>Or try the demo mode below to explore the features</li>
+                    </ul>
+                    <Button
+                      onClick={handleDemoMode}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 border-red-300 text-red-700 hover:bg-red-100 bg-transparent"
+                    >
+                      Try Demo Mode
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -847,7 +998,7 @@ export default function DashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start bg-transparent"
                             onClick={handleEditResume}
                             disabled={isEditingResume || isDownloadingResume}
                           >
@@ -857,7 +1008,7 @@ export default function DashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start bg-transparent"
                             onClick={handleSaveResumeChanges}
                             disabled={!isEditingResume || isDownloadingResume}
                           >
@@ -867,7 +1018,7 @@ export default function DashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start bg-transparent"
                             onClick={handleDownloadResumePDF}
                             disabled={isDownloadingResume}
                           >
@@ -881,7 +1032,7 @@ export default function DashboardPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start bg-transparent"
                             onClick={handlePrint}
                             disabled={isDownloadingResume}
                           >
