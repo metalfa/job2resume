@@ -129,10 +129,10 @@ export default function DashboardPage() {
       ],
       experience: [
         {
-          title: "Senior Software Engineer",
-          company: "InnovateTech Solutions",
+          title: "Senior IT Field Service Engineer",
+          company: "Hellotech",
           location: "Chicago, IL",
-          duration: "2021 - Present",
+          duration: "2018 - Present",
           achievements: [
             "Led development of a microservices architecture using Node.js and Docker, reducing system latency by 40% and improving scalability for 100K+ users",
             "Architected and implemented a React-based dashboard that increased user engagement by 60% and reduced customer support tickets by 35%",
@@ -142,10 +142,10 @@ export default function DashboardPage() {
           ],
         },
         {
-          title: "Full Stack Developer",
-          company: "Digital Dynamics Corp",
-          location: "Chicago, IL",
-          duration: "2019 - 2021",
+          title: "IT Support Engineer",
+          company: "Linedata",
+          location: "Tunis, Tunisia",
+          duration: "2013 - 2018",
           achievements: [
             "Developed and maintained 15+ React components for a customer-facing web application serving 50K+ daily active users",
             "Built RESTful APIs using Node.js and Express, handling 10M+ requests per month with 99.9% uptime",
